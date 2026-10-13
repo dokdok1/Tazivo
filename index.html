@@ -1,0 +1,1399 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B1530">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tazivo">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>html{padding-top:env(safe-area-inset-top,0px);background:#0B1530}</style>
+<title>Tazivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Tajawal:wght@400;500;700&display=swap">
+<style>
+/* Layout: one phone-width column. Week strip + day summary + habits by time of day. Four tabs: Today, Stats, Badges, Settings. Sheets slide up for details, forms, timer and plans. */
+:root{
+  --bg:#F6F8FA; --surface:#FFFFFF; --surface2:#E7EDF1; --fg:#0B1530; --muted:#59647A; --line:#DCE3EA;
+  --accent:#087B7D; --on-accent:#FFFFFF; --flame:#D9730D; --good:#2A9157; --on-flame:#FFFFFF; --lime:#C6FF3E;
+  --violet:#5B5FD6; --sky:#2A8FD2; --amber:#D97A1E; --green:#2F9A5C; --rose:#DE4F67; --on-c:#FFFFFF;
+  --shadow:0 1px 2px rgba(11,21,48,.05),0 8px 20px rgba(11,21,48,.06);
+  --scrim:rgba(14,14,32,.45);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1530; --surface:#121D3D; --surface2:#1B2850; --fg:#EAF1F7; --muted:#9AA8C2; --line:#22305A;
+    --accent:#00C7C3; --on-accent:#0B1530; --flame:#F2A04A; --good:#C6FF3E; --on-flame:#0B1530;
+    --violet:#8E92FF; --sky:#55B4F0; --amber:#F2A456; --green:#4CC57D; --rose:#F07489; --on-c:#0B1530;
+    --shadow:0 1px 2px rgba(0,0,0,.3); --scrim:rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1530; --surface:#121D3D; --surface2:#1B2850; --fg:#EAF1F7; --muted:#9AA8C2; --line:#22305A;
+  --accent:#00C7C3; --on-accent:#0B1530; --flame:#F2A04A; --good:#C6FF3E; --on-flame:#0B1530;
+  --violet:#8E92FF; --sky:#55B4F0; --amber:#F2A456; --green:#4CC57D; --rose:#F07489; --on-c:#0B1530;
+  --shadow:0 1px 2px rgba(0,0,0,.3); --scrim:rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);margin:0}
+#app{--f-display:'Manrope','Segoe UI',system-ui,sans-serif;--f-body:'Manrope','Segoe UI',system-ui,sans-serif;font:15px/1.55 var(--f-body);-webkit-text-size-adjust:100%;min-height:100vh}
+#app[lang="ar"]{--f-display:'Tajawal','Segoe UI',Tahoma,system-ui,sans-serif;--f-body:'Tajawal','Segoe UI',Tahoma,system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0;-webkit-tap-highlight-color:transparent}
+button:disabled{cursor:default;opacity:.4}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+.ic{display:block;flex:none}
+.ic.solid{fill:currentColor}
+
+.app{max-width:480px;margin:0 auto;padding-inline:16px;padding-block:14px 112px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px}
+.brand{font-family:var(--f-display);font-size:32px;font-weight:700;line-height:1.15;display:flex;align-items:flex-start;gap:3px}
+.bdot{width:9px;height:9px;border-radius:50%;background:#C6FF3E;margin-top:7px;flex:none}
+.tagline{color:var(--muted);font-size:11.5px;letter-spacing:.2em;text-align:center;margin:14px 0 0;font-weight:600}
+.dateline{color:var(--muted);font-size:13.5px;margin-top:2px}
+.addbtn{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:var(--on-accent);padding:10px 16px;border-radius:99px;font-weight:600;font-size:14px;white-space:nowrap;flex:none}
+.top>div{min-width:0}
+
+/* week strip */
+.weekbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.wlabel{font-weight:600;font-size:14px}
+.nav{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--muted);background:var(--surface);border:1px solid var(--line)}
+.strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px}
+.day{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 0 6px;border-radius:18px;min-width:0}
+.day.sel{background:var(--surface);box-shadow:0 0 0 1.5px var(--accent)}
+.day.future{opacity:.45}
+.dl{font-size:11px;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc{position:relative;width:38px;height:38px;display:grid;place-items:center;border-radius:50%}
+.dc svg{position:absolute;inset:0}
+.dc b{position:relative;font-family:var(--f-display);font-weight:600;font-size:14px}
+.day.full .dc{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.tdot{width:4px;height:4px;border-radius:50%;background:transparent}
+.tdot.on{background:var(--accent)}
+
+/* summary */
+.summary{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.sring{position:relative;width:64px;height:64px;flex:none;display:grid;place-items:center}
+.sring svg{position:absolute;inset:0}
+.sring span{position:relative;font-family:var(--f-display);font-weight:600;font-size:15px}
+.sbody{min-width:0;flex:1}
+.sbody h2{font-size:16px;font-weight:600}
+.sbody p{color:var(--muted);font-size:13.5px;margin-top:2px}
+.sbody .chip{margin-top:8px}
+.demo{display:flex;gap:10px;align-items:center;justify-content:space-between;background:color-mix(in srgb,var(--accent) 9%,var(--surface));border:1px dashed color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:16px;padding:10px 14px;margin-bottom:14px;font-size:13px}
+.demo button{color:var(--accent);font-weight:600;font-size:13px;text-decoration:underline;text-underline-offset:3px;text-align:end}
+
+/* habits */
+.slot{margin-bottom:18px}
+.slot h2{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--muted);margin:0 4px 8px}
+.list{display:flex;flex-direction:column;gap:10px}
+.habit{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:12px 14px;box-shadow:var(--shadow)}
+.habit.skipped{opacity:.7}
+.habit.paused{box-shadow:none;opacity:.8}
+.h-ico{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 16%,var(--surface));color:var(--c)}
+.h-body{display:flex;flex-direction:column;gap:6px;text-align:start;min-width:0}
+.h-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.h-title{font-weight:600;overflow-wrap:anywhere}
+.streak{display:inline-flex;align-items:center;gap:3px;color:var(--flame);font-size:12.5px;font-weight:600;flex:none}
+.h-sub{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:99px;font-size:11.5px;font-weight:600;background:var(--surface2);color:var(--muted)}
+.tag.due{background:color-mix(in srgb,var(--rose) 16%,var(--surface));color:var(--rose)}
+.track{height:6px;border-radius:99px;background:color-mix(in srgb,var(--c) 16%,var(--surface2));overflow:hidden;display:block}
+.pf{height:100%;background:var(--c);border-radius:99px;transition:width .35s ease;display:block}
+.act{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--c);border:2px solid color-mix(in srgb,var(--c) 55%,transparent)}
+.act.on{background:var(--c);border-color:var(--c);color:var(--on-c)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:22px;padding:24px 18px;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+.empty p{color:var(--muted);max-width:34ch}
+.qs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+
+/* chips, cards */
+.chip{padding:6px 14px;border-radius:99px;background:var(--surface);border:1px solid var(--line);font-size:13px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.card h3{font-size:14px;font-weight:600}
+.card .hint{font-size:12.5px;color:var(--muted);margin:2px 0 12px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}
+.cal .wd{font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell{aspect-ratio:1;display:grid;place-items:center;border-radius:50%;font-family:var(--f-display);font-weight:500;font-size:12.5px;background:color-mix(in srgb,var(--c) calc(var(--p) * 1%),var(--surface2));color:var(--fg)}
+.cell.hi{color:var(--on-c)}
+.cell.off{background:transparent;color:var(--muted);opacity:.5}
+.cell.future{opacity:.35}
+.cell.today{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--fg)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px}
+.tile small{display:block;color:var(--muted);font-size:12.5px}
+.tile b{font-family:var(--f-display);font-size:22px;font-weight:600;line-height:1.5}
+.bars{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px}
+.bar{display:flex;flex-direction:column;align-items:center;gap:4px}
+.bt{width:100%;height:84px;border-radius:7px;background:var(--surface2);display:flex;align-items:flex-end;overflow:hidden}
+.bf{width:100%;background:var(--c);border-radius:7px}
+.bar small{font-size:10px;color:var(--muted)}
+.bar.today small{color:var(--fg);font-weight:600}
+.note{color:var(--muted);font-size:12.5px;margin:-4px 4px 14px}
+.review p{font-size:14px;margin-top:6px}
+.review .big{font-family:var(--f-display);font-size:15px;font-weight:600}
+.review .m{color:var(--muted)}
+
+/* achievements */
+.badges{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 10px}
+.badge{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;font-size:12.5px;color:var(--muted)}
+.hex{width:78px;height:86px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:grid;place-items:center;background:var(--surface2);color:var(--muted)}
+.badge.on{color:var(--fg);font-weight:500}
+.badge.on .hex{background:var(--flame);color:var(--on-flame)}
+.badge.goal.on .hex{background:var(--good);color:var(--on-flame)}
+.section-title{font-size:14px;font-weight:600;margin:4px 4px 12px}
+
+/* settings */
+.group{background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.group>h2{font-size:12.5px;font-weight:600;color:var(--muted);padding:14px 16px 4px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px}
+.row+.row{border-top:1px solid var(--line)}
+.row .lbl{min-width:0}
+.row .lbl b{display:block;font-weight:600;font-size:14.5px}
+.row .lbl small{display:block;color:var(--muted);font-size:12.5px;line-height:1.45;margin-top:2px}
+.row select{width:auto;max-width:55%;padding:8px 12px;font-size:14px}
+.row.col{flex-direction:column;align-items:stretch;gap:10px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btn2{padding:9px 14px;border-radius:12px;background:var(--surface2);font-weight:600;font-size:13.5px}
+.btn2.danger{color:var(--rose)}
+.sw{appearance:none;-webkit-appearance:none;width:46px;height:28px;border-radius:99px;background:var(--surface2);border:1px solid var(--line);position:relative;flex:none;cursor:pointer;margin:0;transition:background .2s}
+.sw::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
+.sw:checked{background:var(--accent);border-color:var(--accent)}
+.sw:checked::after{background:var(--on-accent);transform:translateX(18px)}
+#app[dir="rtl"] .sw:checked::after{transform:translateX(-18px)}
+details.rest summary{cursor:pointer;font-weight:600;font-size:13.5px;color:var(--accent);list-style:none}
+details.rest summary::-webkit-details-marker{display:none}
+details.rest textarea{margin-top:10px}
+.priv{color:var(--muted);font-size:12.5px;text-align:center;margin:6px 8px 0}
+.planline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;background:color-mix(in srgb,var(--accent) 14%,var(--surface));color:var(--accent);font-weight:600;font-size:12.5px}
+
+/* plans */
+.plan{border:1.5px solid var(--line);border-radius:20px;padding:14px 16px;margin-bottom:12px;background:var(--surface)}
+.plan.cur{border-color:var(--accent)}
+.plan.best{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
+.plan-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.plan-h h3{font-family:var(--f-display);font-size:18px;font-weight:600}
+.price{font-family:var(--f-display);font-size:20px;font-weight:700}
+.price small{font-family:var(--f-body);font-weight:500;color:var(--muted);font-size:12.5px;margin-inline-start:4px}
+.plan ul{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
+.plan li{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.plan li svg{color:var(--good);margin-top:3px}
+.plan .tag{margin-inline-start:4px}
+.plan .primary{margin-top:12px}
+.plan .p2{margin-top:6px;font-size:13px;color:var(--muted)}
+.limitmsg{background:color-mix(in srgb,var(--rose) 10%,var(--surface));border-radius:14px;padding:10px 14px;font-size:14px;margin-bottom:12px}
+.demo-note{font-size:12.5px;color:var(--muted);text-align:center;margin:2px 8px 6px}
+
+/* tabs, toast */
+.tabs{position:fixed;inset-inline:0;bottom:0;z-index:10;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px))}
+.tabs-in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:14px;font-size:11.5px;color:var(--muted);min-width:0}
+.tab span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab[aria-current="page"]{color:var(--accent);font-weight:600}
+.toast{position:fixed;inset-inline:16px;bottom:calc(86px + env(safe-area-inset-bottom,0px));margin-inline:auto;width:fit-content;max-width:min(400px,calc(100vw - 32px));z-index:30;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:14px;display:flex;gap:14px;align-items:center;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:none;pointer-events:auto}
+.toast button{font-weight:700;text-decoration:underline;text-underline-offset:3px;color:inherit;white-space:nowrap}
+
+/* sheets */
+.ov{position:fixed;inset:0;z-index:20;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:480px;max-height:92%;overflow:auto;background:var(--surface);border-radius:26px 26px 0 0;padding:10px 20px calc(20px + env(safe-area-inset-bottom,0px));animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+.grab{width:40px;height:4px;border-radius:9px;background:var(--line);margin:0 auto 14px}
+.s-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.s-head h2{font-family:var(--f-display);font-size:22px;font-weight:600;line-height:1.3}
+.s-head p{color:var(--muted);font-size:13.5px}
+.x{width:36px;height:36px;border-radius:50%;background:var(--surface2);display:grid;place-items:center;flex:none}
+.primary{width:100%;padding:14px;border-radius:16px;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:16px}
+.primary.soft{background:var(--surface2);color:var(--fg)}
+.ghost{width:100%;padding:12px;border-radius:16px;color:var(--muted);font-weight:500;margin-top:6px}
+.rb{padding:10px 18px;border-radius:99px;background:var(--surface2);font-weight:600;font-size:14px;display:inline-flex;align-items:center;justify-content:center;min-width:56px}
+.tring{position:relative;width:min(250px,68vw);aspect-ratio:1;margin:6px auto 14px;display:grid;place-items:center}
+.tring svg{position:absolute;inset:0;width:100%;height:100%}
+.tnum{position:relative;text-align:center}
+#t-time{display:block;font-family:var(--f-display);font-size:48px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums}
+#t-note{color:var(--muted);font-size:13px}
+.trow{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.stats2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stats2 div{background:var(--surface2);border-radius:16px;padding:10px 14px}
+.stats2 small{display:block;color:var(--muted);font-size:12px}
+.stats2 b{font-family:var(--f-display);font-size:20px;font-weight:600}
+.mini7{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px}
+.md{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;color:var(--muted);min-width:0}
+.md span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.md i{width:24px;height:24px;border-radius:50%;background:color-mix(in srgb,var(--c) 14%,var(--surface2));display:grid;place-items:center;color:var(--on-c)}
+.md i.d{background:var(--c)}
+.md i.s{background:var(--surface2);color:var(--muted)}
+.stepper{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.sv{text-align:center}
+.sv b{font-family:var(--f-display);font-size:32px;font-weight:600;line-height:1.2;display:block}
+.sv small{color:var(--muted);font-size:13px}
+.hintline{color:var(--muted);font-size:12.5px;margin:6px 4px 12px;text-align:center}
+.arow{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.arow button{flex:1 1 0;min-width:96px;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;border-radius:14px;background:var(--surface2);font-weight:600;font-size:13.5px}
+.arow .danger{color:var(--rose)}
+.confirm{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding:12px 14px;background:color-mix(in srgb,var(--rose) 10%,var(--surface));border-radius:14px;font-size:14px}
+.confirm span{flex:1 1 100%}
+.confirm .danger-fill{background:var(--rose);color:var(--on-c);padding:8px 18px;border-radius:99px;font-weight:600}
+.confirm .keep{padding:8px 14px;color:var(--muted)}
+
+/* form */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field>label,.field>legend{font-size:13px;font-weight:600;color:var(--muted)}
+fieldset{border:0;padding:0;margin:0 0 14px;min-width:0}
+fieldset legend{padding:0;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--muted)}
+input[type=text],input[type=number],input[type=time],select,textarea{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:16px}
+textarea{resize:vertical;min-height:72px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface2);padding:4px;border-radius:14px}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0;inset:0;cursor:pointer;margin:0}
+.seg span{display:block;text-align:center;padding:9px 4px;border-radius:11px;font-size:14px;font-weight:500}
+.seg input:checked+span{background:var(--surface);box-shadow:var(--shadow);font-weight:600}
+.seg input:focus-visible+span{outline:2px solid var(--accent)}
+.seg input:disabled+span{opacity:.4}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.swatches{display:flex;gap:12px}
+.swatches label{position:relative;width:36px;height:36px}
+.swatches input{position:absolute;opacity:0;inset:0;cursor:pointer;margin:0}
+.swatches span{display:block;width:100%;height:100%;border-radius:50%;background:var(--c)}
+.swatches input:checked+span{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--c)}
+.swatches input:focus-visible+span{outline:2px solid var(--fg);outline-offset:3px}
+.dchips{display:flex;gap:6px;flex-wrap:wrap}
+.dchips label{position:relative}
+.dchips input{position:absolute;opacity:0;inset:0;cursor:pointer;margin:0}
+.dchips span{display:block;padding:7px 12px;border-radius:99px;background:var(--surface2);font-size:13px;font-weight:500}
+.dchips input:checked+span{background:var(--accent);color:var(--on-accent);font-weight:600}
+.dchips input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.chk{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:16px}
+.chk input{width:20px;height:20px;accent-color:var(--accent);margin:0}
+.fhint{font-size:12.5px;color:var(--muted);margin-top:-2px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head><body>
+<div id="app" dir="rtl" lang="ar">
+  <div class="app">
+    <header class="top" id="top"></header>
+    <main id="view"></main>
+  </div>
+  <nav class="tabs">
+    <div class="tabs-in" id="tabs">
+      <button class="tab" data-act="tab" data-tab="today" id="tab-today"></button>
+      <button class="tab" data-act="tab" data-tab="stats" id="tab-stats"></button>
+      <button class="tab" data-act="tab" data-tab="ach" id="tab-ach"></button>
+      <button class="tab" data-act="tab" data-tab="set" id="tab-set"></button>
+    </div>
+  </nav>
+  <div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-t"></span><button id="toast-u" data-act="undo" hidden></button></div>
+  <div class="ov" id="ov" hidden>
+    <div class="sheet" id="sh" role="dialog" aria-modal="true" tabindex="-1"></div>
+  </div>
+  <input type="file" id="imp" accept=".json,application/json" hidden>
+</div>
+
+<script>
+(function(){
+'use strict';
+const KEY='tazivo.v1',KEY2='azm.v2',KEY1='azm.v1',FREE_LIMIT=7;
+/* Suggested price points per language. Edit freely; the real ones are set per country in App Store Connect. */
+const USD={cur:'USD',life:9.99,mo:1.99,yr:14.99},EUR={cur:'EUR',life:9.99,mo:1.99,yr:14.99};
+const PRICES={ar:{cur:'EGP',life:299,mo:59,yr:449},en:USD,es:EUR,it:EUR,fr:EUR,de:EUR,pt:USD,tr:USD,ru:USD};
+const P=()=>PRICES[lang]||USD;
+const LANGS=[['ar','العربية'],['en','English'],['es','Español'],['it','Italiano'],['fr','Français'],['de','Deutsch'],['pt','Português'],['tr','Türkçe'],['ru','Русский']];
+const LOC={ar:'ar-EG',en:'en',es:'es',it:'it',fr:'fr',de:'de',pt:'pt-BR',tr:'tr',ru:'ru'};
+const WK={ar:6,en:0,es:1,it:1,fr:1,de:1,pt:0,tr:1,ru:1};
+const COLORS=['violet','sky','amber','green','rose'];
+const SLOTS=['morning','afternoon','evening'];
+const STREAK_MARKS=[2,5,7,14,30,60,90,180,365];
+const GOAL_MARKS=[10,50,100,250,500,1000];
+const TPL=[
+ {k:'meditate',type:'time',target:15,slot:'morning',color:'violet'},
+ {k:'water',type:'count',target:8,u:'cup',slot:'afternoon',color:'sky'},
+ {k:'walk',type:'time',target:30,slot:'afternoon',color:'green'},
+ {k:'read',type:'count',target:10,u:'page',slot:'evening',color:'violet'},
+ {k:'language',type:'time',target:20,slot:'morning',color:'amber'},
+ {k:'nosugar',type:'check',quit:true,slot:'evening',color:'rose'},
+ {k:'sleep',type:'check',slot:'evening',color:'sky'},
+ {k:'journal',type:'check',slot:'evening',color:'amber'},
+ {k:'quran',type:'count',target:5,u:'page',slot:'morning',color:'green'},
+ {k:'pray',type:'count',target:5,u:'prayer',slot:'morning',color:'violet'}
+];
+const L={
+en:{
+brand:"Tazivo",nav_today:"Today",nav_stats:"Stats",nav_ach:"Badges",nav_set:"Settings",
+add_habit:"New habit",add_first:"Add your first habit",
+empty_none:"No habits yet. Start with one small habit, or pick a quick start:",
+empty_before:"No habits were tracked before this day.",no_habits_day:"Nothing scheduled for this day",
+all_done:"All done. Well done!",progress:"{0} of {1} done · {2} left",today:"Today",back_today:"Back to today",
+best_now:"Best current streak: {0}",demo_note:"This is sample data so you can see how it works.",demo_reset:"Start fresh",
+slot_morning:"Morning",slot_afternoon:"Afternoon",slot_evening:"Evening",sched_every:"Every day",
+sub_cnt:"{0}/{1} {2}",sub_time:"{0}/{1} min",sub_quit:"Avoid",min:"min",skipped_chip:"Skipped",due_chip:"Due {0}",
+d_cur:"Current streak",d_best:"Best streak",d_done:"Mark as done",d_undo:"Undo done",d_quit_ok:"I held out today",d_timer:"Start timer",
+d_skip:"Skip this day",d_unskip:"Remove skip",d_skip_hint:"Skipped days never break your streak.",d_note:"Note for this day",d_note_ph:"How did it go?",
+d_pause:"Pause",d_resume:"Resume habit",d_paused:"Paused",d_edit:"Edit",d_delete:"Delete",d_confirm:"Delete “{0}” and all its history?",d_del_ok:"Delete",cancel:"Cancel",
+d_type_check:"Daily habit: done or not",d_type_quit:"A habit you want to quit",d_type_goal:"Goal: {0} {1}",
+tm_goal:"Daily goal: {0} min",tm_len:"Length: {0} min",tm_over:"Time’s up",tm_run:"Running",tm_start:"Start",tm_pause:"Pause",tm_resume:"Resume",tm_finish:"Done, close",tm_save:"Save & close",tm_minus:"−5 min",tm_plus:"+5 min",
+f_new:"New habit",f_edit:"Edit habit",f_sub:"Pick something small you can repeat.",f_name:"Habit name",f_name_ph:"e.g. Morning walk",f_track:"How to track",f_yn:"Yes / No",f_cnt:"Counter",f_time:"Time",
+f_target:"Daily goal",f_target_min:"Goal (minutes)",f_unit:"Unit",f_unit_ph:"e.g. cups",f_slot:"Time of day",f_color:"Color",f_quit:"A habit I want to quit",f_days:"Repeat on",
+f_remind:"Reminder (optional)",f_remind_hint:"In this web demo the reminder shows as “Due”. Real push reminders come with the iOS app.",f_add:"Add habit",f_save:"Save changes",f_quick:"Quick start",
+c_violet:"Violet",c_sky:"Sky blue",c_amber:"Orange",c_green:"Green",c_rose:"Pink",
+u_cup:"cups",u_page:"pages",u_prayer:"prayers",u_times:"times",
+tpl_meditate:"Meditate",tpl_water:"Drink water",tpl_walk:"Walk",tpl_read:"Read",tpl_language:"Learn a language",tpl_nosugar:"No sugar",tpl_sleep:"Sleep early",tpl_journal:"Write a journal",tpl_quran:"Read Quran",tpl_pray:"Pray on time",
+t_added:"Added “{0}”",t_saved:"Changes saved",t_nice:"Nice! “{0}” done",t_badge:"New badge: {0} streak",t_deleted:"Habit deleted",t_undo:"Undo",
+s_all:"All",s_cur:"Current streak",s_best:"Best streak",s_rate:"30-day consistency",s_total:"Completions",s_all_note:"In “All”, streaks show your strongest habit.",
+s_14:"Last 14 days",s_14_hint:"Bar height is the completion rate, 0–100%. Average {0}.",s_14_aria:"Daily completion for the last 14 days",s_empty:"Add a habit to see its stats here.",nav_prev:"Previous",nav_next:"Next",
+r_title:"Weekly review",r_this:"This week you completed {0} of what you planned.",r_up:"That is {0} points up from last week.",r_down:"That is {0} points down from last week. A small restart is enough.",r_same:"Same as last week.",r_best:"Strongest habit: {0}",r_weak:"Needs attention: {0}",r_none:"Not enough data for a review yet.",
+a_streak:"Longest streak: {0}",a_none:"not started yet",a_next:"{0} to the next badge.",a_all:"All streak badges unlocked!",a_goals:"Goals: {0}",a_goals_next:"{0} more for the next badge.",a_goals_all:"All goal badges unlocked!",
+p_day:{one:"{0} day",other:"{0} days"},p_done:{one:"{0} completion",other:"{0} completions"},
+st_lang:"Language",st_week:"Week starts on",st_auto:"Automatic",st_hijri:"Show Hijri date",st_forgive:"Forgiving streaks",st_forgive_hint:"One missed day per week won’t reset your streak. Skipped days never do.",
+st_theme:"Appearance",st_th_auto:"Automatic",st_th_light:"Light",st_th_dark:"Dark",st_plan:"Plan",st_plan_free:"Free",st_plan_pro:"Lifetime",st_see:"See plans",st_used:"{0} of {1} habits used",st_unl:"Unlimited habits",
+st_data:"Your data",st_json:"Download backup",st_csv:"Export CSV",st_copy:"Copy backup",st_restore:"Restore from backup",st_restore_ph:"Paste backup text here",st_restore_btn:"Restore",st_file:"Choose backup file",
+st_wipe:"Delete all data",st_wipe_ask:"Delete every habit and all history? This can’t be undone.",st_wipe_ok:"Yes, delete everything",st_priv:"Your data stays on this device. No account, no ads, no tracking.",
+x_export:"Backup ready. If nothing downloaded, use “Copy backup”.",x_copied:"Backup copied",x_copyfail:"Couldn’t copy automatically. The text is in the box below.",x_imported:"Backup restored",x_bad:"That doesn’t look like a valid backup.",x_wiped:"All data deleted",
+pr_title:"Plans",pr_sub:"Clear limits, shown upfront. Your data is never locked or deleted.",pr_free:"Free",pr_f1:"Up to {0} habits",pr_f2:"Streaks, stats, timer and notes",pr_f3:"Backup and export, always free",
+pr_life:"Lifetime",pr_once:"one-time",pr_l1:"Unlimited habits",pr_l2:"Home-screen widgets and Apple Watch",pr_l3:"Apple Health auto-complete",
+pr_sync:"Cloud sync",pr_mo:"{0} / month",pr_yr:"{0} / year",pr_sy1:"Sync across all your devices",pr_sy2:"Optional: the app works fully without it",pr_soon:"iOS app",pr_best:"Best value",
+pr_unlock:"Unlock lifetime (demo)",pr_demo:"Demo only: no real payment happens here.",pr_unlocked:"Lifetime unlocked",pr_back:"Return to free (demo)",pr_limit:"You’ve reached the free limit of {0} habits.",pr_current:"Current plan",pr_soon_btn:"Coming with the iOS app"
+},
+ar:{
+brand:"Tazivo",nav_today:"اليوم",nav_stats:"الإحصائيات",nav_ach:"الشارات",nav_set:"الإعدادات",
+add_habit:"عادة جديدة",add_first:"أضف أول عادة",
+empty_none:"لا توجد عادات بعد. ابدأ بعادة صغيرة واحدة، أو اختر بداية سريعة:",
+empty_before:"لم تكن هناك عادات مسجّلة قبل هذا اليوم.",no_habits_day:"لا شيء مجدول في هذا اليوم",
+all_done:"أنجزت كل شيء. أحسنت!",progress:"أنجزت {0} من {1} · باقي {2}",today:"اليوم",back_today:"العودة لليوم",
+best_now:"أقوى سلسلة حالية: {0}",demo_note:"هذه بيانات تجريبية لتشوف الفكرة.",demo_reset:"ابدأ من الصفر",
+slot_morning:"صباحاً",slot_afternoon:"بعد الظهر",slot_evening:"مساءً",sched_every:"كل يوم",
+sub_cnt:"{0}/{1} {2}",sub_time:"{0}/{1} د",sub_quit:"تجنّب",min:"د",skipped_chip:"تم التخطي",due_chip:"موعدها {0}",
+d_cur:"السلسلة الحالية",d_best:"أفضل سلسلة",d_done:"تم الإنجاز",d_undo:"إلغاء الإنجاز",d_quit_ok:"امتنعت اليوم",d_timer:"ابدأ المؤقّت",
+d_skip:"تخطَّ هذا اليوم",d_unskip:"إلغاء التخطي",d_skip_hint:"الأيام المتخطّاة لا تكسر سلسلتك.",d_note:"ملاحظة لهذا اليوم",d_note_ph:"كيف سار الأمر؟",
+d_pause:"إيقاف مؤقّت",d_resume:"استئناف العادة",d_paused:"متوقّفة مؤقتاً",d_edit:"تعديل",d_delete:"حذف",d_confirm:"حذف «{0}» وكل سجلّها؟",d_del_ok:"حذف",cancel:"إلغاء",
+d_type_check:"عادة يومية: تمّت أو لم تتم",d_type_quit:"عادة تريد تركها",d_type_goal:"الهدف: {0} {1}",
+tm_goal:"هدف اليوم: {0} د",tm_len:"المدة: {0} د",tm_over:"انتهى الوقت",tm_run:"جارٍ العدّ",tm_start:"ابدأ",tm_pause:"إيقاف مؤقّت",tm_resume:"استئناف",tm_finish:"تم، إغلاق",tm_save:"حفظ وإغلاق",tm_minus:"−٥ د",tm_plus:"+٥ د",
+f_new:"عادة جديدة",f_edit:"تعديل العادة",f_sub:"اختر شيئاً صغيراً تقدر تكرّره.",f_name:"اسم العادة",f_name_ph:"مثال: مشي الصباح",f_track:"طريقة التتبع",f_yn:"نعم / لا",f_cnt:"عدّاد",f_time:"وقت",
+f_target:"الهدف اليومي",f_target_min:"الهدف (دقائق)",f_unit:"الوحدة",f_unit_ph:"مثال: كوب",f_slot:"وقت اليوم",f_color:"اللون",f_quit:"عادة أريد تركها",f_days:"تتكرر في",
+f_remind:"تذكير (اختياري)",f_remind_hint:"في هذه النسخة التجريبية يظهر التذكير كعلامة «موعدها». التنبيهات الحقيقية تأتي مع تطبيق iOS.",f_add:"إضافة العادة",f_save:"حفظ التعديلات",f_quick:"بداية سريعة",
+c_violet:"بنفسجي",c_sky:"أزرق",c_amber:"برتقالي",c_green:"أخضر",c_rose:"وردي",
+u_cup:"كوب",u_page:"صفحة",u_prayer:"صلاة",u_times:"مرة",
+tpl_meditate:"تأمّل",tpl_water:"اشرب الماء",tpl_walk:"المشي",tpl_read:"قراءة",tpl_language:"تعلّم لغة",tpl_nosugar:"بدون سكّر",tpl_sleep:"نوم مبكر",tpl_journal:"كتابة يوميات",tpl_quran:"قراءة القرآن",tpl_pray:"الصلاة في وقتها",
+t_added:"أضفنا «{0}»",t_saved:"تم حفظ التعديلات",t_nice:"أحسنت! أنجزت «{0}»",t_badge:"شارة جديدة: سلسلة {0}",t_deleted:"تم حذف العادة",t_undo:"تراجع",
+s_all:"الكل",s_cur:"السلسلة الحالية",s_best:"أفضل سلسلة",s_rate:"الالتزام آخر ٣٠ يوماً",s_total:"مرات الإنجاز",s_all_note:"في وضع «الكل» تظهر السلاسل لأقوى عادة عندك.",
+s_14:"آخر ١٤ يوماً",s_14_hint:"ارتفاع العمود هو نسبة الإنجاز من ٠ إلى ١٠٠٪. المتوسط {0}.",s_14_aria:"نسبة الإنجاز اليومية آخر ١٤ يوماً",s_empty:"أضف عادة لتظهر إحصائياتها هنا.",nav_prev:"السابق",nav_next:"التالي",
+r_title:"مراجعة الأسبوع",r_this:"أنجزت هذا الأسبوع {0} مما خطّطت له.",r_up:"أعلى من الأسبوع الماضي بـ {0} نقطة.",r_down:"أقل من الأسبوع الماضي بـ {0} نقطة. يكفي أن تبدأ من جديد بخطوة صغيرة.",r_same:"مثل الأسبوع الماضي.",r_best:"أقوى عادة: {0}",r_weak:"تحتاج اهتماماً: {0}",r_none:"لا توجد بيانات كافية للمراجعة بعد.",
+a_streak:"أطول سلسلة: {0}",a_none:"لم تبدأ بعد",a_next:"باقي {0} للشارة التالية.",a_all:"فتحت كل شارات السلاسل!",a_goals:"الأهداف: {0}",a_goals_next:"باقي {0} للشارة التالية.",a_goals_all:"فتحت كل شارات الأهداف!",
+p_day:{zero:"{0} يوم",one:"يوم واحد",two:"يومان",few:"{0} أيام",many:"{0} يوماً",other:"{0} يوم"},p_done:{zero:"{0} إنجاز",one:"إنجاز واحد",two:"إنجازان",few:"{0} إنجازات",many:"{0} إنجازاً",other:"{0} إنجاز"},
+st_lang:"اللغة",st_week:"بداية الأسبوع",st_auto:"تلقائي",st_hijri:"إظهار التاريخ الهجري",st_forgive:"سلاسل متسامحة",st_forgive_hint:"يوم واحد فائت في الأسبوع لا يصفّر سلسلتك، والأيام المتخطّاة لا تكسرها أبداً.",
+st_theme:"المظهر",st_th_auto:"تلقائي",st_th_light:"فاتح",st_th_dark:"داكن",st_plan:"الباقة",st_plan_free:"مجانية",st_plan_pro:"مدى الحياة",st_see:"عرض الباقات",st_used:"استخدمت {0} من {1} عادات",st_unl:"عادات غير محدودة",
+st_data:"بياناتك",st_json:"تنزيل نسخة احتياطية",st_csv:"تصدير CSV",st_copy:"نسخ النسخة الاحتياطية",st_restore:"الاستعادة من نسخة احتياطية",st_restore_ph:"الصق نص النسخة الاحتياطية هنا",st_restore_btn:"استعادة",st_file:"اختيار ملف نسخة احتياطية",
+st_wipe:"حذف كل البيانات",st_wipe_ask:"حذف كل العادات وسجلّها؟ لا يمكن التراجع.",st_wipe_ok:"نعم، احذف كل شيء",st_priv:"بياناتك تبقى على هذا الجهاز. بدون حساب أو إعلانات أو تتبّع.",
+x_export:"النسخة جاهزة. إن لم يبدأ التنزيل استخدم «نسخ النسخة الاحتياطية».",x_copied:"تم نسخ النسخة الاحتياطية",x_copyfail:"تعذّر النسخ تلقائياً. النص في المربع أدناه.",x_imported:"تمت الاستعادة",x_bad:"هذا لا يبدو نسخة احتياطية صالحة.",x_wiped:"تم حذف كل البيانات",
+pr_title:"الباقات",pr_sub:"حدود واضحة من البداية. بياناتك لا تُقفل ولا تُحذف أبداً.",pr_free:"مجاني",pr_f1:"حتى {0} عادات",pr_f2:"السلاسل والإحصائيات والمؤقّت والملاحظات",pr_f3:"النسخ الاحتياطي والتصدير مجانيان دائماً",
+pr_life:"مدى الحياة",pr_once:"دفعة واحدة",pr_l1:"عادات غير محدودة",pr_l2:"ودجت الشاشة الرئيسية وApple Watch",pr_l3:"إنجاز تلقائي من تطبيق Apple Health",
+pr_sync:"مزامنة سحابية",pr_mo:"{0} / شهر",pr_yr:"{0} / سنة",pr_sy1:"مزامنة بين كل أجهزتك",pr_sy2:"اختيارية: التطبيق يعمل كاملاً بدونها",pr_soon:"تطبيق iOS",pr_best:"الأوفر",
+pr_unlock:"افتح مدى الحياة (تجريبي)",pr_demo:"تجريبي فقط: لا يتم أي دفع حقيقي هنا.",pr_unlocked:"تم فتح مدى الحياة",pr_back:"العودة للمجانية (تجريبي)",pr_limit:"وصلت للحد المجاني: {0} عادات.",pr_current:"باقتك الحالية",pr_soon_btn:"تأتي مع تطبيق iOS"
+},
+es:{
+brand:"Tazivo",nav_today:"Hoy",nav_stats:"Estadísticas",nav_ach:"Insignias",nav_set:"Ajustes",
+add_habit:"Nuevo hábito",add_first:"Añade tu primer hábito",
+empty_none:"Aún no hay hábitos. Empieza con uno pequeño o elige un inicio rápido:",
+empty_before:"No había hábitos registrados antes de este día.",no_habits_day:"Nada programado para este día",
+all_done:"¡Todo hecho! Bien hecho.",progress:"{0} de {1} hechos · faltan {2}",today:"Hoy",back_today:"Volver a hoy",
+best_now:"Mejor racha actual: {0}",demo_note:"Son datos de ejemplo para que veas cómo funciona.",demo_reset:"Empezar de cero",
+slot_morning:"Mañana",slot_afternoon:"Tarde",slot_evening:"Noche",sched_every:"Todos los días",
+sub_cnt:"{0}/{1} {2}",sub_time:"{0}/{1} min",sub_quit:"Evitar",min:"min",skipped_chip:"Omitido",due_chip:"Para las {0}",
+d_cur:"Racha actual",d_best:"Mejor racha",d_done:"Marcar como hecho",d_undo:"Deshacer",d_quit_ok:"Hoy resistí",d_timer:"Iniciar temporizador",
+d_skip:"Omitir este día",d_unskip:"Quitar omisión",d_skip_hint:"Los días omitidos nunca rompen tu racha.",d_note:"Nota del día",d_note_ph:"¿Cómo fue?",
+d_pause:"Pausar",d_resume:"Reanudar hábito",d_paused:"En pausa",d_edit:"Editar",d_delete:"Eliminar",d_confirm:"¿Eliminar «{0}» y todo su historial?",d_del_ok:"Eliminar",cancel:"Cancelar",
+d_type_check:"Hábito diario: hecho o no",d_type_quit:"Un hábito que quieres dejar",d_type_goal:"Meta: {0} {1}",
+tm_goal:"Meta de hoy: {0} min",tm_len:"Duración: {0} min",tm_over:"Se acabó el tiempo",tm_run:"En marcha",tm_start:"Iniciar",tm_pause:"Pausar",tm_resume:"Reanudar",tm_finish:"Listo, cerrar",tm_save:"Guardar y cerrar",tm_minus:"−5 min",tm_plus:"+5 min",
+f_new:"Nuevo hábito",f_edit:"Editar hábito",f_sub:"Elige algo pequeño que puedas repetir.",f_name:"Nombre del hábito",f_name_ph:"p. ej. Caminar por la mañana",f_track:"Cómo registrarlo",f_yn:"Sí / No",f_cnt:"Contador",f_time:"Tiempo",
+f_target:"Meta diaria",f_target_min:"Meta (minutos)",f_unit:"Unidad",f_unit_ph:"p. ej. vasos",f_slot:"Momento del día",f_color:"Color",f_quit:"Un hábito que quiero dejar",f_days:"Se repite",
+f_remind:"Recordatorio (opcional)",f_remind_hint:"En esta demo web el recordatorio aparece como «Para las…». Las notificaciones reales llegan con la app de iOS.",f_add:"Añadir hábito",f_save:"Guardar cambios",f_quick:"Inicio rápido",
+c_violet:"Violeta",c_sky:"Azul",c_amber:"Naranja",c_green:"Verde",c_rose:"Rosa",
+u_cup:"vasos",u_page:"páginas",u_prayer:"oraciones",u_times:"veces",
+tpl_meditate:"Meditar",tpl_water:"Beber agua",tpl_walk:"Caminar",tpl_read:"Leer",tpl_language:"Aprender un idioma",tpl_nosugar:"Sin azúcar",tpl_sleep:"Dormir temprano",tpl_journal:"Escribir un diario",tpl_quran:"Leer el Corán",tpl_pray:"Orar a tiempo",
+t_added:"Añadido «{0}»",t_saved:"Cambios guardados",t_nice:"¡Bien! «{0}» hecho",t_badge:"Nueva insignia: racha de {0}",t_deleted:"Hábito eliminado",t_undo:"Deshacer",
+s_all:"Todos",s_cur:"Racha actual",s_best:"Mejor racha",s_rate:"Constancia a 30 días",s_total:"Veces completado",s_all_note:"En «Todos», las rachas muestran tu hábito más fuerte.",
+s_14:"Últimos 14 días",s_14_hint:"La altura de la barra es el porcentaje completado, de 0 a 100 %. Promedio {0}.",s_14_aria:"Cumplimiento diario de los últimos 14 días",s_empty:"Añade un hábito para ver aquí sus estadísticas.",nav_prev:"Anterior",nav_next:"Siguiente",
+r_title:"Resumen semanal",r_this:"Esta semana completaste {0} de lo que planeaste.",r_up:"Son {0} puntos más que la semana pasada.",r_down:"Son {0} puntos menos que la semana pasada. Basta con un pequeño reinicio.",r_same:"Igual que la semana pasada.",r_best:"Hábito más fuerte: {0}",r_weak:"Necesita atención: {0}",r_none:"Aún no hay datos suficientes para un resumen.",
+a_streak:"Racha más larga: {0}",a_none:"aún sin empezar",a_next:"Faltan {0} para la siguiente insignia.",a_all:"¡Todas las insignias de racha desbloqueadas!",a_goals:"Metas: {0}",a_goals_next:"Faltan {0} para la siguiente insignia.",a_goals_all:"¡Todas las insignias de metas desbloqueadas!",
+p_day:{one:"{0} día",other:"{0} días"},p_done:{one:"{0} completado",other:"{0} completados"},
+st_lang:"Idioma",st_week:"La semana empieza el",st_auto:"Automático",st_hijri:"Mostrar fecha hijri",st_forgive:"Rachas indulgentes",st_forgive_hint:"Un día fallado por semana no reinicia tu racha. Los días omitidos tampoco.",
+st_theme:"Apariencia",st_th_auto:"Automática",st_th_light:"Clara",st_th_dark:"Oscura",st_plan:"Plan",st_plan_free:"Gratis",st_plan_pro:"De por vida",st_see:"Ver planes",st_used:"{0} de {1} hábitos usados",st_unl:"Hábitos ilimitados",
+st_data:"Tus datos",st_json:"Descargar copia de seguridad",st_csv:"Exportar CSV",st_copy:"Copiar copia de seguridad",st_restore:"Restaurar desde copia",st_restore_ph:"Pega aquí el texto de la copia",st_restore_btn:"Restaurar",st_file:"Elegir archivo de copia",
+st_wipe:"Borrar todos los datos",st_wipe_ask:"¿Borrar todos los hábitos y su historial? No se puede deshacer.",st_wipe_ok:"Sí, borrar todo",st_priv:"Tus datos se quedan en este dispositivo. Sin cuenta, sin anuncios, sin rastreo.",
+x_export:"Copia lista. Si no se descargó nada, usa «Copiar copia de seguridad».",x_copied:"Copia copiada",x_copyfail:"No se pudo copiar automáticamente. El texto está en el cuadro de abajo.",x_imported:"Copia restaurada",x_bad:"Eso no parece una copia válida.",x_wiped:"Todos los datos borrados",
+pr_title:"Planes",pr_sub:"Límites claros desde el principio. Tus datos nunca se bloquean ni se borran.",pr_free:"Gratis",pr_f1:"Hasta {0} hábitos",pr_f2:"Rachas, estadísticas, temporizador y notas",pr_f3:"Copia de seguridad y exportación, siempre gratis",
+pr_life:"De por vida",pr_once:"pago único",pr_l1:"Hábitos ilimitados",pr_l2:"Widgets en la pantalla de inicio y Apple Watch",pr_l3:"Completado automático con Apple Salud",
+pr_sync:"Sincronización en la nube",pr_mo:"{0} / mes",pr_yr:"{0} / año",pr_sy1:"Sincroniza todos tus dispositivos",pr_sy2:"Opcional: la app funciona completa sin ella",pr_soon:"app iOS",pr_best:"Mejor valor",
+pr_unlock:"Desbloquear de por vida (demo)",pr_demo:"Solo demo: aquí no se realiza ningún pago real.",pr_unlocked:"Desbloqueado de por vida",pr_back:"Volver a gratis (demo)",pr_limit:"Has llegado al límite gratuito de {0} hábitos.",pr_current:"Plan actual",pr_soon_btn:"Llega con la app de iOS"
+},
+it:{
+brand:"Tazivo",nav_today:"Oggi",nav_stats:"Statistiche",nav_ach:"Badge",nav_set:"Impostazioni",
+add_habit:"Nuova abitudine",add_first:"Aggiungi la tua prima abitudine",
+empty_none:"Ancora nessuna abitudine. Parti da una piccola, o scegli un avvio rapido:",
+empty_before:"Prima di questo giorno non c’erano abitudini registrate.",no_habits_day:"Niente in programma per questo giorno",
+all_done:"Tutto fatto. Ottimo lavoro!",progress:"{0} di {1} fatte · ne mancano {2}",today:"Oggi",back_today:"Torna a oggi",
+best_now:"Miglior serie attuale: {0}",demo_note:"Sono dati di esempio per mostrarti come funziona.",demo_reset:"Ricomincia da zero",
+slot_morning:"Mattina",slot_afternoon:"Pomeriggio",slot_evening:"Sera",sched_every:"Ogni giorno",
+sub_cnt:"{0}/{1} {2}",sub_time:"{0}/{1} min",sub_quit:"Evitare",min:"min",skipped_chip:"Saltata",due_chip:"Alle {0}",
+d_cur:"Serie attuale",d_best:"Serie migliore",d_done:"Segna come fatta",d_undo:"Annulla",d_quit_ok:"Oggi ho resistito",d_timer:"Avvia timer",
+d_skip:"Salta questo giorno",d_unskip:"Rimuovi salto",d_skip_hint:"I giorni saltati non interrompono mai la serie.",d_note:"Nota del giorno",d_note_ph:"Com’è andata?",
+d_pause:"Pausa",d_resume:"Riprendi abitudine",d_paused:"In pausa",d_edit:"Modifica",d_delete:"Elimina",d_confirm:"Eliminare «{0}» e tutta la sua cronologia?",d_del_ok:"Elimina",cancel:"Annulla",
+d_type_check:"Abitudine quotidiana: fatta o no",d_type_quit:"Un’abitudine che vuoi lasciare",d_type_goal:"Obiettivo: {0} {1}",
+tm_goal:"Obiettivo di oggi: {0} min",tm_len:"Durata: {0} min",tm_over:"Tempo scaduto",tm_run:"In corso",tm_start:"Avvia",tm_pause:"Pausa",tm_resume:"Riprendi",tm_finish:"Fatto, chiudi",tm_save:"Salva e chiudi",tm_minus:"−5 min",tm_plus:"+5 min",
+f_new:"Nuova abitudine",f_edit:"Modifica abitudine",f_sub:"Scegli qualcosa di piccolo che puoi ripetere.",f_name:"Nome dell’abitudine",f_name_ph:"es. Camminata mattutina",f_track:"Come tracciarla",f_yn:"Sì / No",f_cnt:"Contatore",f_time:"Tempo",
+f_target:"Obiettivo giornaliero",f_target_min:"Obiettivo (minuti)",f_unit:"Unità",f_unit_ph:"es. bicchieri",f_slot:"Momento della giornata",f_color:"Colore",f_quit:"Un’abitudine che voglio lasciare",f_days:"Ripeti nei giorni",
+f_remind:"Promemoria (facoltativo)",f_remind_hint:"In questa demo web il promemoria compare come «Alle…». Le notifiche vere arrivano con l’app iOS.",f_add:"Aggiungi abitudine",f_save:"Salva modifiche",f_quick:"Avvio rapido",
+c_violet:"Viola",c_sky:"Azzurro",c_amber:"Arancione",c_green:"Verde",c_rose:"Rosa",
+u_cup:"bicchieri",u_page:"pagine",u_prayer:"preghiere",u_times:"volte",
+tpl_meditate:"Meditare",tpl_water:"Bere acqua",tpl_walk:"Camminare",tpl_read:"Leggere",tpl_language:"Imparare una lingua",tpl_nosugar:"Niente zucchero",tpl_sleep:"Dormire presto",tpl_journal:"Scrivere un diario",tpl_quran:"Leggere il Corano",tpl_pray:"Pregare in orario",
+t_added:"Aggiunta «{0}»",t_saved:"Modifiche salvate",t_nice:"Bravo! «{0}» fatta",t_badge:"Nuovo badge: serie di {0}",t_deleted:"Abitudine eliminata",t_undo:"Annulla",
+s_all:"Tutte",s_cur:"Serie attuale",s_best:"Serie migliore",s_rate:"Costanza a 30 giorni",s_total:"Completamenti",s_all_note:"In «Tutte», le serie mostrano la tua abitudine più forte.",
+s_14:"Ultimi 14 giorni",s_14_hint:"L’altezza della barra è la percentuale completata, da 0 a 100%. Media {0}.",s_14_aria:"Completamento giornaliero degli ultimi 14 giorni",s_empty:"Aggiungi un’abitudine per vederne qui le statistiche.",nav_prev:"Precedente",nav_next:"Successivo",
+r_title:"Riepilogo settimanale",r_this:"Questa settimana hai completato {0} di ciò che avevi pianificato.",r_up:"Sono {0} punti in più rispetto alla settimana scorsa.",r_down:"Sono {0} punti in meno rispetto alla settimana scorsa. Basta un piccolo nuovo inizio.",r_same:"Come la settimana scorsa.",r_best:"Abitudine più forte: {0}",r_weak:"Richiede attenzione: {0}",r_none:"Non ci sono ancora dati sufficienti per un riepilogo.",
+a_streak:"Serie più lunga: {0}",a_none:"non ancora iniziata",a_next:"Mancano {0} al prossimo badge.",a_all:"Tutti i badge delle serie sbloccati!",a_goals:"Obiettivi: {0}",a_goals_next:"Ne mancano {0} al prossimo badge.",a_goals_all:"Tutti i badge degli obiettivi sbloccati!",
+p_day:{one:"{0} giorno",other:"{0} giorni"},p_done:{one:"{0} completamento",other:"{0} completamenti"},
+st_lang:"Lingua",st_week:"La settimana inizia di",st_auto:"Automatico",st_hijri:"Mostra data hijri",st_forgive:"Serie indulgenti",st_forgive_hint:"Un giorno mancato a settimana non azzera la serie. I giorni saltati nemmeno.",
+st_theme:"Aspetto",st_th_auto:"Automatico",st_th_light:"Chiaro",st_th_dark:"Scuro",st_plan:"Piano",st_plan_free:"Gratuito",st_plan_pro:"A vita",st_see:"Vedi i piani",st_used:"{0} di {1} abitudini usate",st_unl:"Abitudini illimitate",
+st_data:"I tuoi dati",st_json:"Scarica backup",st_csv:"Esporta CSV",st_copy:"Copia backup",st_restore:"Ripristina da backup",st_restore_ph:"Incolla qui il testo del backup",st_restore_btn:"Ripristina",st_file:"Scegli file di backup",
+st_wipe:"Elimina tutti i dati",st_wipe_ask:"Eliminare tutte le abitudini e la cronologia? Non si può annullare.",st_wipe_ok:"Sì, elimina tutto",st_priv:"I tuoi dati restano su questo dispositivo. Nessun account, nessuna pubblicità, nessun tracciamento.",
+x_export:"Backup pronto. Se non è partito il download, usa «Copia backup».",x_copied:"Backup copiato",x_copyfail:"Impossibile copiare in automatico. Il testo è nella casella qui sotto.",x_imported:"Backup ripristinato",x_bad:"Non sembra un backup valido.",x_wiped:"Tutti i dati eliminati",
+pr_title:"Piani",pr_sub:"Limiti chiari fin dall’inizio. I tuoi dati non vengono mai bloccati né cancellati.",pr_free:"Gratis",pr_f1:"Fino a {0} abitudini",pr_f2:"Serie, statistiche, timer e note",pr_f3:"Backup ed esportazione sempre gratuiti",
+pr_life:"A vita",pr_once:"pagamento unico",pr_l1:"Abitudini illimitate",pr_l2:"Widget nella schermata Home e Apple Watch",pr_l3:"Completamento automatico con Apple Salute",
+pr_sync:"Sincronizzazione cloud",pr_mo:"{0} / mese",pr_yr:"{0} / anno",pr_sy1:"Sincronizza tutti i tuoi dispositivi",pr_sy2:"Facoltativa: l’app funziona completamente anche senza",pr_soon:"app iOS",pr_best:"Più conveniente",
+pr_unlock:"Sblocca a vita (demo)",pr_demo:"Solo demo: qui non avviene nessun pagamento reale.",pr_unlocked:"Sbloccato a vita",pr_back:"Torna al piano gratuito (demo)",pr_limit:"Hai raggiunto il limite gratuito di {0} abitudini.",pr_current:"Piano attuale",pr_soon_btn:"Arriva con l’app iOS"
+},
+fr:{
+brand:"Tazivo",nav_today:"Aujourd’hui",nav_stats:"Stats",nav_ach:"Badges",nav_set:"Réglages",
+add_habit:"Nouvelle habitude",add_first:"Ajoutez votre première habitude",
+empty_none:"Pas encore d’habitude. Commencez par une petite, ou choisissez un démarrage rapide :",
+empty_before:"Aucune habitude n’était suivie avant ce jour.",no_habits_day:"Rien de prévu ce jour-là",
+all_done:"Tout est fait. Bravo !",progress:"{0} sur {1} faites · {2} restantes",today:"Aujourd’hui",back_today:"Revenir à aujourd’hui",
+best_now:"Meilleure série en cours : {0}",demo_note:"Ce sont des données d’exemple pour voir comment ça marche.",demo_reset:"Repartir de zéro",
+slot_morning:"Matin",slot_afternoon:"Après-midi",slot_evening:"Soir",sched_every:"Tous les jours",
+sub_cnt:"{0}/{1} {2}",sub_time:"{0}/{1} min",sub_quit:"Éviter",min:"min",skipped_chip:"Passée",due_chip:"À {0}",
+d_cur:"Série en cours",d_best:"Meilleure série",d_done:"Marquer comme fait",d_undo:"Annuler",d_quit_ok:"J’ai résisté aujourd’hui",d_timer:"Lancer le minuteur",
+d_skip:"Passer ce jour",d_unskip:"Retirer le saut",d_skip_hint:"Les jours passés ne cassent jamais votre série.",d_note:"Note du jour",d_note_ph:"Comment ça s’est passé ?",
+d_pause:"Pause",d_resume:"Reprendre l’habitude",d_paused:"En pause",d_edit:"Modifier",d_delete:"Supprimer",d_confirm:"Supprimer « {0} » et tout son historique ?",d_del_ok:"Supprimer",cancel:"Annuler",
+d_type_check:"Habitude quotidienne : faite ou non",d_type_quit:"Une habitude que vous voulez arrêter",d_type_goal:"Objectif : {0} {1}",
+tm_goal:"Objectif du jour : {0} min",tm_len:"Durée : {0} min",tm_over:"Temps écoulé",tm_run:"En cours",tm_start:"Démarrer",tm_pause:"Pause",tm_resume:"Reprendre",tm_finish:"Terminé, fermer",tm_save:"Enregistrer et fermer",tm_minus:"−5 min",tm_plus:"+5 min",
+f_new:"Nouvelle habitude",f_edit:"Modifier l’habitude",f_sub:"Choisissez quelque chose de petit que vous pouvez répéter.",f_name:"Nom de l’habitude",f_name_ph:"ex. Marche du matin",f_track:"Mode de suivi",f_yn:"Oui / Non",f_cnt:"Compteur",f_time:"Durée",
+f_target:"Objectif quotidien",f_target_min:"Objectif (minutes)",f_unit:"Unité",f_unit_ph:"ex. verres",f_slot:"Moment de la journée",f_color:"Couleur",f_quit:"Une habitude que je veux arrêter",f_days:"Répéter",
+f_remind:"Rappel (facultatif)",f_remind_hint:"Dans cette démo web, le rappel s’affiche comme « À… ». Les vraies notifications arrivent avec l’app iOS.",f_add:"Ajouter l’habitude",f_save:"Enregistrer",f_quick:"Démarrage rapide",
+c_violet:"Violet",c_sky:"Bleu",c_amber:"Orange",c_green:"Vert",c_rose:"Rose",
+u_cup:"verres",u_page:"pages",u_prayer:"prières",u_times:"fois",
+tpl_meditate:"Méditer",tpl_water:"Boire de l’eau",tpl_walk:"Marcher",tpl_read:"Lire",tpl_language:"Apprendre une langue",tpl_nosugar:"Sans sucre",tpl_sleep:"Se coucher tôt",tpl_journal:"Tenir un journal",tpl_quran:"Lire le Coran",tpl_pray:"Prier à l’heure",
+t_added:"« {0} » ajoutée",t_saved:"Modifications enregistrées",t_nice:"Bravo ! « {0} » faite",t_badge:"Nouveau badge : série de {0}",t_deleted:"Habitude supprimée",t_undo:"Annuler",
+s_all:"Toutes",s_cur:"Série en cours",s_best:"Meilleure série",s_rate:"Régularité sur 30 jours",s_total:"Réalisations",s_all_note:"Dans « Toutes », les séries montrent votre habitude la plus solide.",
+s_14:"14 derniers jours",s_14_hint:"La hauteur de la barre est le taux de réalisation, de 0 à 100 %. Moyenne {0}.",s_14_aria:"Réalisation quotidienne sur les 14 derniers jours",s_empty:"Ajoutez une habitude pour voir ses statistiques ici.",nav_prev:"Précédent",nav_next:"Suivant",
+r_title:"Bilan de la semaine",r_this:"Cette semaine, vous avez réalisé {0} de ce que vous aviez prévu.",r_up:"C’est {0} points de plus que la semaine dernière.",r_down:"C’est {0} points de moins que la semaine dernière. Un petit nouveau départ suffit.",r_same:"Comme la semaine dernière.",r_best:"Habitude la plus solide : {0}",r_weak:"À surveiller : {0}",r_none:"Pas encore assez de données pour un bilan.",
+a_streak:"Plus longue série : {0}",a_none:"pas encore commencée",a_next:"Encore {0} pour le prochain badge.",a_all:"Tous les badges de série sont débloqués !",a_goals:"Objectifs : {0}",a_goals_next:"Encore {0} pour le prochain badge.",a_goals_all:"Tous les badges d’objectifs sont débloqués !",
+p_day:{one:"{0} jour",other:"{0} jours"},p_done:{one:"{0} réalisation",other:"{0} réalisations"},
+st_lang:"Langue",st_week:"La semaine commence le",st_auto:"Automatique",st_hijri:"Afficher la date hégirienne",st_forgive:"Séries indulgentes",st_forgive_hint:"Un jour manqué par semaine ne remet pas votre série à zéro. Les jours passés non plus.",
+st_theme:"Apparence",st_th_auto:"Automatique",st_th_light:"Clair",st_th_dark:"Sombre",st_plan:"Formule",st_plan_free:"Gratuite",st_plan_pro:"À vie",st_see:"Voir les formules",st_used:"{0} habitudes sur {1} utilisées",st_unl:"Habitudes illimitées",
+st_data:"Vos données",st_json:"Télécharger une sauvegarde",st_csv:"Exporter en CSV",st_copy:"Copier la sauvegarde",st_restore:"Restaurer une sauvegarde",st_restore_ph:"Collez ici le texte de la sauvegarde",st_restore_btn:"Restaurer",st_file:"Choisir un fichier de sauvegarde",
+st_wipe:"Supprimer toutes les données",st_wipe_ask:"Supprimer toutes les habitudes et leur historique ? Action irréversible.",st_wipe_ok:"Oui, tout supprimer",st_priv:"Vos données restent sur cet appareil. Pas de compte, pas de pub, pas de suivi.",
+x_export:"Sauvegarde prête. Si rien n’a été téléchargé, utilisez « Copier la sauvegarde ».",x_copied:"Sauvegarde copiée",x_copyfail:"Copie automatique impossible. Le texte est dans la zone ci-dessous.",x_imported:"Sauvegarde restaurée",x_bad:"Cela ne ressemble pas à une sauvegarde valide.",x_wiped:"Toutes les données ont été supprimées",
+pr_title:"Formules",pr_sub:"Des limites claires dès le départ. Vos données ne sont jamais verrouillées ni supprimées.",pr_free:"Gratuit",pr_f1:"Jusqu’à {0} habitudes",pr_f2:"Séries, statistiques, minuteur et notes",pr_f3:"Sauvegarde et export toujours gratuits",
+pr_life:"À vie",pr_once:"paiement unique",pr_l1:"Habitudes illimitées",pr_l2:"Widgets d’écran d’accueil et Apple Watch",pr_l3:"Validation automatique avec Apple Santé",
+pr_sync:"Synchronisation cloud",pr_mo:"{0} / mois",pr_yr:"{0} / an",pr_sy1:"Synchronisez tous vos appareils",pr_sy2:"Facultatif : l’app fonctionne pleinement sans",pr_soon:"app iOS",pr_best:"Meilleur rapport",
+pr_unlock:"Débloquer à vie (démo)",pr_demo:"Démo uniquement : aucun paiement réel ici.",pr_unlocked:"Débloqué à vie",pr_back:"Revenir à la formule gratuite (démo)",pr_limit:"Vous avez atteint la limite gratuite de {0} habitudes.",pr_current:"Formule actuelle",pr_soon_btn:"Arrive avec l’app iOS"
+},
+de:{
+brand:"Tazivo",nav_today:"Heute",nav_stats:"Statistik",nav_ach:"Abzeichen",nav_set:"Einstellungen",
+add_habit:"Neue Gewohnheit",add_first:"Erste Gewohnheit hinzufügen",
+empty_none:"Noch keine Gewohnheiten. Starte mit einer kleinen oder wähle einen Schnellstart:",
+empty_before:"Vor diesem Tag wurden keine Gewohnheiten erfasst.",no_habits_day:"Für diesen Tag ist nichts geplant",
+all_done:"Alles erledigt. Gut gemacht!",progress:"{0} von {1} erledigt · {2} offen",today:"Heute",back_today:"Zurück zu heute",
+best_now:"Beste aktuelle Serie: {0}",demo_note:"Das sind Beispieldaten, damit du siehst, wie es funktioniert.",demo_reset:"Neu beginnen",
+slot_morning:"Morgens",slot_afternoon:"Nachmittags",slot_evening:"Abends",sched_every:"Jeden Tag",
+sub_cnt:"{0}/{1} {2}",sub_time:"{0}/{1} Min.",sub_quit:"Vermeiden",min:"Min.",skipped_chip:"Übersprungen",due_chip:"Um {0}",
+d_cur:"Aktuelle Serie",d_best:"Beste Serie",d_done:"Als erledigt markieren",d_undo:"Rückgängig",d_quit_ok:"Heute widerstanden",d_timer:"Timer starten",
+d_skip:"Diesen Tag überspringen",d_unskip:"Überspringen aufheben",d_skip_hint:"Übersprungene Tage unterbrechen deine Serie nie.",d_note:"Notiz zum Tag",d_note_ph:"Wie lief es?",
+d_pause:"Pausieren",d_resume:"Gewohnheit fortsetzen",d_paused:"Pausiert",d_edit:"Bearbeiten",d_delete:"Löschen",d_confirm:"„{0}“ und den gesamten Verlauf löschen?",d_del_ok:"Löschen",cancel:"Abbrechen",
+d_type_check:"Tägliche Gewohnheit: erledigt oder nicht",d_type_quit:"Eine Gewohnheit, die du ablegen willst",d_type_goal:"Ziel: {0} {1}",
+tm_goal:"Tagesziel: {0} Min.",tm_len:"Dauer: {0} Min.",tm_over:"Zeit abgelaufen",tm_run:"Läuft",tm_start:"Start",tm_pause:"Pause",tm_resume:"Fortsetzen",tm_finish:"Fertig, schließen",tm_save:"Speichern und schließen",tm_minus:"−5 Min.",tm_plus:"+5 Min.",
+f_new:"Neue Gewohnheit",f_edit:"Gewohnheit bearbeiten",f_sub:"Wähle etwas Kleines, das du wiederholen kannst.",f_name:"Name der Gewohnheit",f_name_ph:"z. B. Morgenspaziergang",f_track:"Art der Erfassung",f_yn:"Ja / Nein",f_cnt:"Zähler",f_time:"Zeit",
+f_target:"Tagesziel",f_target_min:"Ziel (Minuten)",f_unit:"Einheit",f_unit_ph:"z. B. Gläser",f_slot:"Tageszeit",f_color:"Farbe",f_quit:"Eine Gewohnheit, die ich ablegen will",f_days:"Wiederholen an",
+f_remind:"Erinnerung (optional)",f_remind_hint:"In dieser Web-Demo erscheint die Erinnerung als „Um …“. Echte Push-Erinnerungen kommen mit der iOS-App.",f_add:"Gewohnheit hinzufügen",f_save:"Änderungen speichern",f_quick:"Schnellstart",
+c_violet:"Violett",c_sky:"Blau",c_amber:"Orange",c_green:"Grün",c_rose:"Rosa",
+u_cup:"Gläser",u_page:"Seiten",u_prayer:"Gebete",u_times:"Mal",
+tpl_meditate:"Meditieren",tpl_water:"Wasser trinken",tpl_walk:"Spazieren gehen",tpl_read:"Lesen",tpl_language:"Eine Sprache lernen",tpl_nosugar:"Kein Zucker",tpl_sleep:"Früh schlafen",tpl_journal:"Tagebuch schreiben",tpl_quran:"Koran lesen",tpl_pray:"Pünktlich beten",
+t_added:"„{0}“ hinzugefügt",t_saved:"Änderungen gespeichert",t_nice:"Super! „{0}“ erledigt",t_badge:"Neues Abzeichen: Serie von {0}",t_deleted:"Gewohnheit gelöscht",t_undo:"Rückgängig",
+s_all:"Alle",s_cur:"Aktuelle Serie",s_best:"Beste Serie",s_rate:"Konstanz (30 Tage)",s_total:"Erledigt",s_all_note:"Bei „Alle“ zeigen die Serien deine stärkste Gewohnheit.",
+s_14:"Letzte 14 Tage",s_14_hint:"Die Balkenhöhe ist die Erledigungsquote von 0 bis 100 %. Durchschnitt {0}.",s_14_aria:"Tägliche Erledigung der letzten 14 Tage",s_empty:"Füge eine Gewohnheit hinzu, um hier ihre Statistik zu sehen.",nav_prev:"Zurück",nav_next:"Weiter",
+r_title:"Wochenrückblick",r_this:"Diese Woche hast du {0} deiner Pläne erledigt.",r_up:"Das sind {0} Punkte mehr als letzte Woche.",r_down:"Das sind {0} Punkte weniger als letzte Woche. Ein kleiner Neustart genügt.",r_same:"Wie letzte Woche.",r_best:"Stärkste Gewohnheit: {0}",r_weak:"Braucht Aufmerksamkeit: {0}",r_none:"Noch nicht genug Daten für einen Rückblick.",
+a_streak:"Längste Serie: {0}",a_none:"noch nicht begonnen",a_next:"Noch {0} bis zum nächsten Abzeichen.",a_all:"Alle Serien-Abzeichen freigeschaltet!",a_goals:"Ziele: {0}",a_goals_next:"Noch {0} bis zum nächsten Abzeichen.",a_goals_all:"Alle Ziel-Abzeichen freigeschaltet!",
+p_day:{one:"{0} Tag",other:"{0} Tage"},p_done:{one:"{0} Erledigung",other:"{0} Erledigungen"},
+st_lang:"Sprache",st_week:"Woche beginnt am",st_auto:"Automatisch",st_hijri:"Hidschri-Datum anzeigen",st_forgive:"Nachsichtige Serien",st_forgive_hint:"Ein verpasster Tag pro Woche setzt deine Serie nicht zurück. Übersprungene Tage auch nicht.",
+st_theme:"Darstellung",st_th_auto:"Automatisch",st_th_light:"Hell",st_th_dark:"Dunkel",st_plan:"Tarif",st_plan_free:"Kostenlos",st_plan_pro:"Lebenslang",st_see:"Tarife ansehen",st_used:"{0} von {1} Gewohnheiten genutzt",st_unl:"Unbegrenzte Gewohnheiten",
+st_data:"Deine Daten",st_json:"Backup herunterladen",st_csv:"CSV exportieren",st_copy:"Backup kopieren",st_restore:"Aus Backup wiederherstellen",st_restore_ph:"Backup-Text hier einfügen",st_restore_btn:"Wiederherstellen",st_file:"Backup-Datei wählen",
+st_wipe:"Alle Daten löschen",st_wipe_ask:"Alle Gewohnheiten und den Verlauf löschen? Das lässt sich nicht rückgängig machen.",st_wipe_ok:"Ja, alles löschen",st_priv:"Deine Daten bleiben auf diesem Gerät. Kein Konto, keine Werbung, kein Tracking.",
+x_export:"Backup bereit. Falls nichts heruntergeladen wurde, nutze „Backup kopieren“.",x_copied:"Backup kopiert",x_copyfail:"Automatisches Kopieren nicht möglich. Der Text steht im Feld unten.",x_imported:"Backup wiederhergestellt",x_bad:"Das sieht nicht nach einem gültigen Backup aus.",x_wiped:"Alle Daten gelöscht",
+pr_title:"Tarife",pr_sub:"Klare Grenzen von Anfang an. Deine Daten werden nie gesperrt oder gelöscht.",pr_free:"Kostenlos",pr_f1:"Bis zu {0} Gewohnheiten",pr_f2:"Serien, Statistik, Timer und Notizen",pr_f3:"Backup und Export immer kostenlos",
+pr_life:"Lebenslang",pr_once:"Einmalzahlung",pr_l1:"Unbegrenzte Gewohnheiten",pr_l2:"Home-Bildschirm-Widgets und Apple Watch",pr_l3:"Automatisches Abhaken mit Apple Health",
+pr_sync:"Cloud-Sync",pr_mo:"{0} / Monat",pr_yr:"{0} / Jahr",pr_sy1:"Synchronisiere alle deine Geräte",pr_sy2:"Optional: Die App funktioniert auch ohne vollständig",pr_soon:"iOS-App",pr_best:"Bestes Angebot",
+pr_unlock:"Lebenslang freischalten (Demo)",pr_demo:"Nur Demo: Hier findet keine echte Zahlung statt.",pr_unlocked:"Lebenslang freigeschaltet",pr_back:"Zurück zu Kostenlos (Demo)",pr_limit:"Du hast das kostenlose Limit von {0} Gewohnheiten erreicht.",pr_current:"Aktueller Tarif",pr_soon_btn:"Kommt mit der iOS-App"
+},
+pt:{
+brand:"Tazivo",nav_today:"Hoje",nav_stats:"Estatísticas",nav_ach:"Conquistas",nav_set:"Ajustes",
+add_habit:"Novo hábito",add_first:"Adicione seu primeiro hábito",
+empty_none:"Ainda não há hábitos. Comece com um pequeno ou escolha um início rápido:",
+empty_before:"Não havia hábitos registrados antes deste dia.",no_habits_day:"Nada programado para este dia",
+all_done:"Tudo feito. Muito bem!",progress:"{0} de {1} feitos · faltam {2}",today:"Hoje",back_today:"Voltar para hoje",
+best_now:"Melhor sequência atual: {0}",demo_note:"São dados de exemplo para você ver como funciona.",demo_reset:"Começar do zero",
+slot_morning:"Manhã",slot_afternoon:"Tarde",slot_evening:"Noite",sched_every:"Todos os dias",
+sub_cnt:"{0}/{1} {2}",sub_time:"{0}/{1} min",sub_quit:"Evitar",min:"min",skipped_chip:"Pulado",due_chip:"Às {0}",
+d_cur:"Sequência atual",d_best:"Melhor sequência",d_done:"Marcar como feito",d_undo:"Desfazer",d_quit_ok:"Resisti hoje",d_timer:"Iniciar cronômetro",
+d_skip:"Pular este dia",d_unskip:"Remover pulo",d_skip_hint:"Dias pulados nunca quebram sua sequência.",d_note:"Nota do dia",d_note_ph:"Como foi?",
+d_pause:"Pausar",d_resume:"Retomar hábito",d_paused:"Pausado",d_edit:"Editar",d_delete:"Excluir",d_confirm:"Excluir “{0}” e todo o histórico?",d_del_ok:"Excluir",cancel:"Cancelar",
+d_type_check:"Hábito diário: feito ou não",d_type_quit:"Um hábito que você quer largar",d_type_goal:"Meta: {0} {1}",
+tm_goal:"Meta de hoje: {0} min",tm_len:"Duração: {0} min",tm_over:"Tempo esgotado",tm_run:"Em andamento",tm_start:"Iniciar",tm_pause:"Pausar",tm_resume:"Retomar",tm_finish:"Pronto, fechar",tm_save:"Salvar e fechar",tm_minus:"−5 min",tm_plus:"+5 min",
+f_new:"Novo hábito",f_edit:"Editar hábito",f_sub:"Escolha algo pequeno que você consiga repetir.",f_name:"Nome do hábito",f_name_ph:"ex.: Caminhada matinal",f_track:"Como acompanhar",f_yn:"Sim / Não",f_cnt:"Contador",f_time:"Tempo",
+f_target:"Meta diária",f_target_min:"Meta (minutos)",f_unit:"Unidade",f_unit_ph:"ex.: copos",f_slot:"Período do dia",f_color:"Cor",f_quit:"Um hábito que quero largar",f_days:"Repetir em",
+f_remind:"Lembrete (opcional)",f_remind_hint:"Nesta demo web o lembrete aparece como “Às…”. Notificações de verdade chegam com o app para iOS.",f_add:"Adicionar hábito",f_save:"Salvar alterações",f_quick:"Início rápido",
+c_violet:"Violeta",c_sky:"Azul",c_amber:"Laranja",c_green:"Verde",c_rose:"Rosa",
+u_cup:"copos",u_page:"páginas",u_prayer:"orações",u_times:"vezes",
+tpl_meditate:"Meditar",tpl_water:"Beber água",tpl_walk:"Caminhar",tpl_read:"Ler",tpl_language:"Aprender um idioma",tpl_nosugar:"Sem açúcar",tpl_sleep:"Dormir cedo",tpl_journal:"Escrever um diário",tpl_quran:"Ler o Alcorão",tpl_pray:"Orar no horário",
+t_added:"“{0}” adicionado",t_saved:"Alterações salvas",t_nice:"Muito bem! “{0}” feito",t_badge:"Nova conquista: sequência de {0}",t_deleted:"Hábito excluído",t_undo:"Desfazer",
+s_all:"Todos",s_cur:"Sequência atual",s_best:"Melhor sequência",s_rate:"Consistência em 30 dias",s_total:"Conclusões",s_all_note:"Em “Todos”, as sequências mostram seu hábito mais forte.",
+s_14:"Últimos 14 dias",s_14_hint:"A altura da barra é a taxa de conclusão, de 0 a 100%. Média {0}.",s_14_aria:"Conclusão diária dos últimos 14 dias",s_empty:"Adicione um hábito para ver as estatísticas dele aqui.",nav_prev:"Anterior",nav_next:"Próximo",
+r_title:"Resumo semanal",r_this:"Nesta semana você concluiu {0} do que planejou.",r_up:"São {0} pontos a mais que na semana passada.",r_down:"São {0} pontos a menos que na semana passada. Um pequeno recomeço basta.",r_same:"Igual à semana passada.",r_best:"Hábito mais forte: {0}",r_weak:"Precisa de atenção: {0}",r_none:"Ainda não há dados suficientes para um resumo.",
+a_streak:"Maior sequência: {0}",a_none:"ainda não começou",a_next:"Faltam {0} para a próxima conquista.",a_all:"Todas as conquistas de sequência desbloqueadas!",a_goals:"Metas: {0}",a_goals_next:"Faltam {0} para a próxima conquista.",a_goals_all:"Todas as conquistas de metas desbloqueadas!",
+p_day:{one:"{0} dia",other:"{0} dias"},p_done:{one:"{0} conclusão",other:"{0} conclusões"},
+st_lang:"Idioma",st_week:"A semana começa em",st_auto:"Automático",st_hijri:"Mostrar data hijri",st_forgive:"Sequências tolerantes",st_forgive_hint:"Um dia perdido por semana não zera sua sequência. Dias pulados também não.",
+st_theme:"Aparência",st_th_auto:"Automática",st_th_light:"Clara",st_th_dark:"Escura",st_plan:"Plano",st_plan_free:"Grátis",st_plan_pro:"Vitalício",st_see:"Ver planos",st_used:"{0} de {1} hábitos usados",st_unl:"Hábitos ilimitados",
+st_data:"Seus dados",st_json:"Baixar backup",st_csv:"Exportar CSV",st_copy:"Copiar backup",st_restore:"Restaurar de um backup",st_restore_ph:"Cole aqui o texto do backup",st_restore_btn:"Restaurar",st_file:"Escolher arquivo de backup",
+st_wipe:"Apagar todos os dados",st_wipe_ask:"Apagar todos os hábitos e o histórico? Isso não pode ser desfeito.",st_wipe_ok:"Sim, apagar tudo",st_priv:"Seus dados ficam neste aparelho. Sem conta, sem anúncios, sem rastreamento.",
+x_export:"Backup pronto. Se nada foi baixado, use “Copiar backup”.",x_copied:"Backup copiado",x_copyfail:"Não foi possível copiar automaticamente. O texto está na caixa abaixo.",x_imported:"Backup restaurado",x_bad:"Isso não parece um backup válido.",x_wiped:"Todos os dados apagados",
+pr_title:"Planos",pr_sub:"Limites claros desde o início. Seus dados nunca são bloqueados nem apagados.",pr_free:"Grátis",pr_f1:"Até {0} hábitos",pr_f2:"Sequências, estatísticas, cronômetro e notas",pr_f3:"Backup e exportação sempre grátis",
+pr_life:"Vitalício",pr_once:"pagamento único",pr_l1:"Hábitos ilimitados",pr_l2:"Widgets na tela inicial e Apple Watch",pr_l3:"Conclusão automática com Saúde da Apple",
+pr_sync:"Sincronização na nuvem",pr_mo:"{0} / mês",pr_yr:"{0} / ano",pr_sy1:"Sincronize todos os seus aparelhos",pr_sy2:"Opcional: o app funciona por completo sem ela",pr_soon:"app iOS",pr_best:"Melhor custo-benefício",
+pr_unlock:"Desbloquear vitalício (demo)",pr_demo:"Apenas demo: nenhum pagamento real acontece aqui.",pr_unlocked:"Vitalício desbloqueado",pr_back:"Voltar ao grátis (demo)",pr_limit:"Você atingiu o limite grátis de {0} hábitos.",pr_current:"Plano atual",pr_soon_btn:"Chega com o app para iOS"
+},
+tr:{
+brand:"Tazivo",nav_today:"Bugün",nav_stats:"İstatistik",nav_ach:"Rozetler",nav_set:"Ayarlar",
+add_habit:"Yeni alışkanlık",add_first:"İlk alışkanlığını ekle",
+empty_none:"Henüz alışkanlık yok. Küçük bir tane ile başla ya da hızlı başlangıç seç:",
+empty_before:"Bu günden önce kayıtlı alışkanlık yoktu.",no_habits_day:"Bu gün için planlanmış bir şey yok",
+all_done:"Hepsi tamam. Aferin!",progress:"{1} içinden {0} tamamlandı · {2} kaldı",today:"Bugün",back_today:"Bugüne dön",
+best_now:"En iyi güncel seri: {0}",demo_note:"Nasıl çalıştığını görmen için örnek verilerdir.",demo_reset:"Sıfırdan başla",
+slot_morning:"Sabah",slot_afternoon:"Öğleden sonra",slot_evening:"Akşam",sched_every:"Her gün",
+sub_cnt:"{0}/{1} {2}",sub_time:"{0}/{1} dk",sub_quit:"Kaçın",min:"dk",skipped_chip:"Atlandı",due_chip:"Saat {0}",
+d_cur:"Güncel seri",d_best:"En iyi seri",d_done:"Tamamlandı olarak işaretle",d_undo:"Geri al",d_quit_ok:"Bugün kendimi tuttum",d_timer:"Zamanlayıcıyı başlat",
+d_skip:"Bu günü atla",d_unskip:"Atlamayı kaldır",d_skip_hint:"Atlanan günler serini asla bozmaz.",d_note:"Günün notu",d_note_ph:"Nasıl geçti?",
+d_pause:"Duraklat",d_resume:"Alışkanlığa devam et",d_paused:"Duraklatıldı",d_edit:"Düzenle",d_delete:"Sil",d_confirm:"“{0}” ve tüm geçmişi silinsin mi?",d_del_ok:"Sil",cancel:"Vazgeç",
+d_type_check:"Günlük alışkanlık: yapıldı ya da yapılmadı",d_type_quit:"Bırakmak istediğin alışkanlık",d_type_goal:"Hedef: {0} {1}",
+tm_goal:"Bugünkü hedef: {0} dk",tm_len:"Süre: {0} dk",tm_over:"Süre doldu",tm_run:"Çalışıyor",tm_start:"Başlat",tm_pause:"Duraklat",tm_resume:"Devam et",tm_finish:"Tamam, kapat",tm_save:"Kaydet ve kapat",tm_minus:"−5 dk",tm_plus:"+5 dk",
+f_new:"Yeni alışkanlık",f_edit:"Alışkanlığı düzenle",f_sub:"Tekrarlayabileceğin küçük bir şey seç.",f_name:"Alışkanlık adı",f_name_ph:"örn. Sabah yürüyüşü",f_track:"Takip yöntemi",f_yn:"Evet / Hayır",f_cnt:"Sayaç",f_time:"Süre",
+f_target:"Günlük hedef",f_target_min:"Hedef (dakika)",f_unit:"Birim",f_unit_ph:"örn. bardak",f_slot:"Günün zamanı",f_color:"Renk",f_quit:"Bırakmak istediğim bir alışkanlık",f_days:"Tekrar günleri",
+f_remind:"Hatırlatıcı (isteğe bağlı)",f_remind_hint:"Bu web demosunda hatırlatıcı “Saat …” olarak görünür. Gerçek bildirimler iOS uygulamasıyla gelir.",f_add:"Alışkanlığı ekle",f_save:"Değişiklikleri kaydet",f_quick:"Hızlı başlangıç",
+c_violet:"Mor",c_sky:"Mavi",c_amber:"Turuncu",c_green:"Yeşil",c_rose:"Pembe",
+u_cup:"bardak",u_page:"sayfa",u_prayer:"namaz",u_times:"kez",
+tpl_meditate:"Meditasyon",tpl_water:"Su iç",tpl_walk:"Yürüyüş",tpl_read:"Kitap oku",tpl_language:"Dil öğren",tpl_nosugar:"Şekersiz",tpl_sleep:"Erken uyu",tpl_journal:"Günlük yaz",tpl_quran:"Kur’an oku",tpl_pray:"Namazı vaktinde kıl",
+t_added:"“{0}” eklendi",t_saved:"Değişiklikler kaydedildi",t_nice:"Harika! “{0}” tamam",t_badge:"Yeni rozet: {0} seri",t_deleted:"Alışkanlık silindi",t_undo:"Geri al",
+s_all:"Tümü",s_cur:"Güncel seri",s_best:"En iyi seri",s_rate:"30 günlük düzen",s_total:"Tamamlanan",s_all_note:"“Tümü” seçiliyken seriler en güçlü alışkanlığını gösterir.",
+s_14:"Son 14 gün",s_14_hint:"Çubuk yüksekliği tamamlanma oranıdır, 0–100%. Ortalama {0}.",s_14_aria:"Son 14 günün günlük tamamlanma oranı",s_empty:"İstatistiklerini görmek için bir alışkanlık ekle.",nav_prev:"Önceki",nav_next:"Sonraki",
+r_title:"Haftalık özet",r_this:"Bu hafta planladıklarının {0} kadarını tamamladın.",r_up:"Geçen haftaya göre {0} puan daha yüksek.",r_down:"Geçen haftaya göre {0} puan daha düşük. Küçük bir yeniden başlangıç yeter.",r_same:"Geçen haftayla aynı.",r_best:"En güçlü alışkanlık: {0}",r_weak:"İlgi bekliyor: {0}",r_none:"Özet için henüz yeterli veri yok.",
+a_streak:"En uzun seri: {0}",a_none:"henüz başlamadı",a_next:"Sonraki rozete {0} kaldı.",a_all:"Tüm seri rozetleri açıldı!",a_goals:"Hedefler: {0}",a_goals_next:"Sonraki rozete {0} kaldı.",a_goals_all:"Tüm hedef rozetleri açıldı!",
+p_day:{one:"{0} gün",other:"{0} gün"},p_done:{one:"{0} tamamlama",other:"{0} tamamlama"},
+st_lang:"Dil",st_week:"Hafta şu gün başlar",st_auto:"Otomatik",st_hijri:"Hicri tarihi göster",st_forgive:"Esnek seriler",st_forgive_hint:"Haftada bir kaçırılan gün serini sıfırlamaz. Atlanan günler de sıfırlamaz.",
+st_theme:"Görünüm",st_th_auto:"Otomatik",st_th_light:"Açık",st_th_dark:"Koyu",st_plan:"Plan",st_plan_free:"Ücretsiz",st_plan_pro:"Ömür boyu",st_see:"Planları gör",st_used:"{1} alışkanlıktan {0} kullanıldı",st_unl:"Sınırsız alışkanlık",
+st_data:"Verilerin",st_json:"Yedek indir",st_csv:"CSV olarak dışa aktar",st_copy:"Yedeği kopyala",st_restore:"Yedekten geri yükle",st_restore_ph:"Yedek metnini buraya yapıştır",st_restore_btn:"Geri yükle",st_file:"Yedek dosyası seç",
+st_wipe:"Tüm verileri sil",st_wipe_ask:"Tüm alışkanlıklar ve geçmiş silinsin mi? Bu geri alınamaz.",st_wipe_ok:"Evet, hepsini sil",st_priv:"Verilerin bu cihazda kalır. Hesap yok, reklam yok, takip yok.",
+x_export:"Yedek hazır. Hiçbir şey inmediyse “Yedeği kopyala”yı kullan.",x_copied:"Yedek kopyalandı",x_copyfail:"Otomatik kopyalanamadı. Metin aşağıdaki kutuda.",x_imported:"Yedek geri yüklendi",x_bad:"Bu geçerli bir yedek gibi görünmüyor.",x_wiped:"Tüm veriler silindi",
+pr_title:"Planlar",pr_sub:"Baştan net sınırlar. Verilerin asla kilitlenmez veya silinmez.",pr_free:"Ücretsiz",pr_f1:"En fazla {0} alışkanlık",pr_f2:"Seriler, istatistikler, zamanlayıcı ve notlar",pr_f3:"Yedekleme ve dışa aktarma her zaman ücretsiz",
+pr_life:"Ömür boyu",pr_once:"tek seferlik ödeme",pr_l1:"Sınırsız alışkanlık",pr_l2:"Ana ekran widget’ları ve Apple Watch",pr_l3:"Apple Sağlık ile otomatik tamamlama",
+pr_sync:"Bulut senkronizasyonu",pr_mo:"{0} / ay",pr_yr:"{0} / yıl",pr_sy1:"Tüm cihazlarını senkronize et",pr_sy2:"İsteğe bağlı: uygulama bu olmadan da tam çalışır",pr_soon:"iOS uygulaması",pr_best:"En avantajlısı",
+pr_unlock:"Ömür boyu aç (demo)",pr_demo:"Yalnızca demo: burada gerçek ödeme yapılmaz.",pr_unlocked:"Ömür boyu açık",pr_back:"Ücretsize dön (demo)",pr_limit:"Ücretsiz sınır olan {0} alışkanlığa ulaştın.",pr_current:"Mevcut plan",pr_soon_btn:"iOS uygulamasıyla geliyor"
+},
+ru:{
+brand:"Tazivo",nav_today:"Сегодня",nav_stats:"Статистика",nav_ach:"Награды",nav_set:"Настройки",
+add_habit:"Новая привычка",add_first:"Добавьте первую привычку",
+empty_none:"Привычек пока нет. Начните с одной небольшой или выберите быстрый старт:",
+empty_before:"До этого дня привычки не отслеживались.",no_habits_day:"На этот день ничего не запланировано",
+all_done:"Всё выполнено. Отлично!",progress:"Выполнено {0} из {1} · осталось {2}",today:"Сегодня",back_today:"Вернуться к сегодняшнему дню",
+best_now:"Лучшая текущая серия: {0}",demo_note:"Это примеры данных, чтобы вы увидели, как всё работает.",demo_reset:"Начать с нуля",
+slot_morning:"Утро",slot_afternoon:"День",slot_evening:"Вечер",sched_every:"Каждый день",
+sub_cnt:"{0}/{1} {2}",sub_time:"{0}/{1} мин",sub_quit:"Избегать",min:"мин",skipped_chip:"Пропущено",due_chip:"В {0}",
+d_cur:"Текущая серия",d_best:"Лучшая серия",d_done:"Отметить выполненным",d_undo:"Отменить",d_quit_ok:"Сегодня удержался",d_timer:"Запустить таймер",
+d_skip:"Пропустить этот день",d_unskip:"Отменить пропуск",d_skip_hint:"Пропущенные дни не прерывают серию.",d_note:"Заметка на день",d_note_ph:"Как всё прошло?",
+d_pause:"Пауза",d_resume:"Возобновить привычку",d_paused:"Приостановлено",d_edit:"Изменить",d_delete:"Удалить",d_confirm:"Удалить «{0}» и всю историю?",d_del_ok:"Удалить",cancel:"Отмена",
+d_type_check:"Ежедневная привычка: сделано или нет",d_type_quit:"Привычка, от которой вы хотите отказаться",d_type_goal:"Цель: {0} {1}",
+tm_goal:"Цель на сегодня: {0} мин",tm_len:"Длительность: {0} мин",tm_over:"Время вышло",tm_run:"Идёт отсчёт",tm_start:"Старт",tm_pause:"Пауза",tm_resume:"Продолжить",tm_finish:"Готово, закрыть",tm_save:"Сохранить и закрыть",tm_minus:"−5 мин",tm_plus:"+5 мин",
+f_new:"Новая привычка",f_edit:"Изменить привычку",f_sub:"Выберите что-то небольшое, что можно повторять.",f_name:"Название привычки",f_name_ph:"напр. Утренняя прогулка",f_track:"Как отслеживать",f_yn:"Да / Нет",f_cnt:"Счётчик",f_time:"Время",
+f_target:"Цель на день",f_target_min:"Цель (минуты)",f_unit:"Единица",f_unit_ph:"напр. стаканов",f_slot:"Время суток",f_color:"Цвет",f_quit:"Привычка, от которой я хочу отказаться",f_days:"Повторять по",
+f_remind:"Напоминание (необязательно)",f_remind_hint:"В этой веб-демо напоминание отображается как «В …». Настоящие уведомления появятся в приложении для iOS.",f_add:"Добавить привычку",f_save:"Сохранить изменения",f_quick:"Быстрый старт",
+c_violet:"Фиолетовый",c_sky:"Синий",c_amber:"Оранжевый",c_green:"Зелёный",c_rose:"Розовый",
+u_cup:"стаканов",u_page:"страниц",u_prayer:"молитв",u_times:"раз",
+tpl_meditate:"Медитация",tpl_water:"Пить воду",tpl_walk:"Прогулка",tpl_read:"Чтение",tpl_language:"Изучение языка",tpl_nosugar:"Без сахара",tpl_sleep:"Ложиться пораньше",tpl_journal:"Вести дневник",tpl_quran:"Чтение Корана",tpl_pray:"Молитва вовремя",
+t_added:"«{0}» добавлена",t_saved:"Изменения сохранены",t_nice:"Отлично! «{0}» выполнена",t_badge:"Новая награда: серия {0}",t_deleted:"Привычка удалена",t_undo:"Отменить",
+s_all:"Все",s_cur:"Текущая серия",s_best:"Лучшая серия",s_rate:"Регулярность за 30 дней",s_total:"Выполнено раз",s_all_note:"В режиме «Все» серии показывают вашу самую сильную привычку.",
+s_14:"Последние 14 дней",s_14_hint:"Высота столбца — доля выполненного, от 0 до 100%. В среднем {0}.",s_14_aria:"Ежедневное выполнение за последние 14 дней",s_empty:"Добавьте привычку, чтобы увидеть здесь её статистику.",nav_prev:"Назад",nav_next:"Вперёд",
+r_title:"Итоги недели",r_this:"На этой неделе вы выполнили {0} от запланированного.",r_up:"Это на {0} п.п. больше, чем на прошлой неделе.",r_down:"Это на {0} п.п. меньше, чем на прошлой неделе. Достаточно небольшого нового старта.",r_same:"Как и на прошлой неделе.",r_best:"Самая сильная привычка: {0}",r_weak:"Требует внимания: {0}",r_none:"Для итогов пока недостаточно данных.",
+a_streak:"Самая длинная серия: {0}",a_none:"ещё не начата",a_next:"До следующей награды: {0}.",a_all:"Все награды за серии открыты!",a_goals:"Цели: {0}",a_goals_next:"До следующей награды: {0}.",a_goals_all:"Все награды за цели открыты!",
+p_day:{one:"{0} день",few:"{0} дня",many:"{0} дней",other:"{0} дня"},p_done:{one:"{0} выполнение",few:"{0} выполнения",many:"{0} выполнений",other:"{0} выполнения"},
+st_lang:"Язык",st_week:"Неделя начинается с",st_auto:"Автоматически",st_hijri:"Показывать дату по хиджре",st_forgive:"Мягкие серии",st_forgive_hint:"Один пропущенный день в неделю не обнуляет серию. Пропущенные вручную дни — тоже.",
+st_theme:"Оформление",st_th_auto:"Автоматически",st_th_light:"Светлое",st_th_dark:"Тёмное",st_plan:"Тариф",st_plan_free:"Бесплатный",st_plan_pro:"Навсегда",st_see:"Посмотреть тарифы",st_used:"Использовано привычек: {0} из {1}",st_unl:"Неограниченно привычек",
+st_data:"Ваши данные",st_json:"Скачать резервную копию",st_csv:"Экспорт в CSV",st_copy:"Скопировать резервную копию",st_restore:"Восстановить из копии",st_restore_ph:"Вставьте сюда текст резервной копии",st_restore_btn:"Восстановить",st_file:"Выбрать файл копии",
+st_wipe:"Удалить все данные",st_wipe_ask:"Удалить все привычки и историю? Это нельзя отменить.",st_wipe_ok:"Да, удалить всё",st_priv:"Ваши данные остаются на этом устройстве. Без аккаунта, рекламы и слежки.",
+x_export:"Копия готова. Если ничего не скачалось, нажмите «Скопировать резервную копию».",x_copied:"Копия скопирована",x_copyfail:"Не удалось скопировать автоматически. Текст в поле ниже.",x_imported:"Копия восстановлена",x_bad:"Это не похоже на корректную резервную копию.",x_wiped:"Все данные удалены",
+pr_title:"Тарифы",pr_sub:"Чёткие лимиты с самого начала. Ваши данные никогда не блокируются и не удаляются.",pr_free:"Бесплатно",pr_f1:"До {0} привычек",pr_f2:"Серии, статистика, таймер и заметки",pr_f3:"Резервные копии и экспорт всегда бесплатны",
+pr_life:"Навсегда",pr_once:"разовый платёж",pr_l1:"Неограниченно привычек",pr_l2:"Виджеты на главном экране и Apple Watch",pr_l3:"Автоотметка через «Здоровье» Apple",
+pr_sync:"Облачная синхронизация",pr_mo:"{0} / мес.",pr_yr:"{0} / год",pr_sy1:"Синхронизация всех ваших устройств",pr_sy2:"Необязательно: приложение полностью работает и без неё",pr_soon:"приложение для iOS",pr_best:"Самое выгодное",
+pr_unlock:"Открыть навсегда (демо)",pr_demo:"Только демо: реальной оплаты здесь нет.",pr_unlocked:"Открыто навсегда",pr_back:"Вернуться на бесплатный (демо)",pr_limit:"Вы достигли бесплатного лимита: {0} привычек.",pr_current:"Текущий тариф",pr_soon_btn:"Появится в приложении для iOS"
+}
+};
+
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=x=>String(x).padStart(2,'0');
+const ds=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const fromDs=s=>{const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);};
+const addDays=(d,k)=>{const x=new Date(d);x.setDate(x.getDate()+k);return x;};
+const todayStr=()=>ds(new Date());
+const nowHM=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());};
+let lang='en',PF=null,S=null;
+const loc=()=>LOC[lang]||'en';
+const nf=x=>Math.round(Number(x)).toLocaleString(loc());
+const two=x=>Number(x).toLocaleString(loc(),{minimumIntegerDigits:2,useGrouping:false});
+const pct=p=>PF.format(p/100);
+const money=v=>new Intl.NumberFormat(loc(),{style:'currency',currency:P().cur,maximumFractionDigits:v%1?2:0,minimumFractionDigits:v%1?2:0}).format(v);
+function t(k){
+  const a=Array.prototype.slice.call(arguments,1);
+  let s=(L[lang]&&L[lang][k]!==undefined)?L[lang][k]:L.en[k];
+  if(s===undefined)return k;
+  return String(s).replace(/\{(\d)\}/g,(m,i)=>a[i]!==undefined?a[i]:m);
+}
+function tp(k,c){
+  const d=(L[lang]&&L[lang][k])||L.en[k];
+  const cat=new Intl.PluralRules(loc()).select(c);
+  return (d[cat]||d.other).replace('{0}',nf(c));
+}
+const rtl=()=>lang==='ar';
+const wsDay=()=>S.settings.week==='auto'?WK[lang]:Number(S.settings.week);
+const dayIdx=d=>(d.getDay()-wsDay()+7)%7;
+const wdName=(w,style)=>new Date(2024,0,7+w).toLocaleDateString(loc(),{weekday:style});
+const fmtLong=d=>d.toLocaleDateString(loc(),{weekday:'long',day:'numeric',month:'long'});
+const monthYear=d=>d.toLocaleDateString(loc(),{month:'long',year:'numeric'});
+function hijri(d){try{return new Intl.DateTimeFormat(loc()+'-u-ca-islamic-umalqura',{day:'numeric',month:'long',year:'numeric'}).format(d);}catch(e){return '';}}
+function mkFmt(){PF=new Intl.NumberFormat(loc(),{style:'percent',maximumFractionDigits:0});}
+
+const I={
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  minus:'<path d="M5 12h14"/>',
+  play:'<path d="M8 5.5v13l11-6.5z" fill="currentColor"/>',
+  flame:'<path d="M12 2.8c.5 3.3-3 5-3 8.4 0 1.1.5 1.9 1.2 2.4-.1-1.4.8-2.3 1.7-3.1 1 1.4 3.3 2.5 3.3 5.2A5 5 0 0 1 12 20.8a5.7 5.7 0 0 1-5.7-5.8C6.3 10 12 8 12 2.8z"/>',
+  flag:'<path d="M6 21V4M6 5h11l-2 4 2 4H6"/>',
+  clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  hash:'<path d="M9.5 4L8 20M16 4l-1.5 16M4.5 9h15M4 15h15"/>',
+  checksq:'<rect x="4" y="4" width="16" height="16" rx="4.5"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>',
+  ban:'<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
+  chevR:'<path d="M9 5l7 7-7 7"/>',
+  chevL:'<path d="M15 5l-7 7 7 7"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  trash:'<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13M10 11v6M14 11v6"/>',
+  today:'<rect x="4" y="5" width="16" height="15" rx="3.5"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  stats:'<path d="M5 20v-9M12 20V4M19 20v-6"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
+  bell:'<path d="M6 17v-6a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/>',
+  pencil:'<path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19z"/>',
+  pause:'<path d="M9 5v14M15 5v14"/>',
+  skip:'<path d="M5 5l9 7-9 7zM18 5v14"/>'
+};
+const ic=(k,s,fill)=>'<svg class="ic'+(fill?' solid':'')+'" width="'+(s||22)+'" height="'+(s||22)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+I[k]+'</svg>';
+const icPrev=s=>ic(rtl()?'chevR':'chevL',s);
+const icNext=s=>ic(rtl()?'chevL':'chevR',s);
+function ring(p,size,sw,color,track){
+  const r=(size-sw)/2,c=2*Math.PI*r,m=size/2;
+  let s='<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'" aria-hidden="true"><circle cx="'+m+'" cy="'+m+'" r="'+r+'" fill="none" stroke="'+(track||'var(--line)')+'" stroke-width="'+sw+'"/>';
+  if(p>0.001)s+='<circle cx="'+m+'" cy="'+m+'" r="'+r+'" fill="none" stroke="'+(color||'var(--accent)')+'" stroke-width="'+sw+'" stroke-linecap="round" stroke-dasharray="'+c+'" stroke-dashoffset="'+(c*(1-Math.min(1,p)))+'" transform="rotate(-90 '+m+' '+m+')"/>';
+  return s+'</svg>';
+}
+
+/* ---------- data ---------- */
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let x=Math.imul(a^a>>>15,1|a);x=x+Math.imul(x^x>>>7,61|x)^x;return((x^x>>>14)>>>0)/4294967296;};}
+const goalOf=h=>h.type==='time'?h.target*60:(h.type==='count'?h.target:1);
+function mkHabit(k,id,created){
+  const tp_=TPL.find(x=>x.k===k);
+  return {id:id,key:k,type:tp_.type,target:tp_.target||1,ukey:tp_.u,slot:tp_.slot,color:tp_.color,kind:tp_.quit?'quit':'build',created:created,days:null,remind:'',pauses:[]};
+}
+function detectLang(){const n=((navigator.language||'en')+'').slice(0,2).toLowerCase();return LOC[n]?n:'en';}
+function freshSettings(l){return {lang:l,week:'auto',hijri:l==='ar',forgive:true,theme:'auto',pro:false};}
+function seed(l){
+  const r=rng(7),tt=new Date(),created=ds(addDays(tt,-45));
+  const keys=['meditate','language','water','walk','read','nosugar'];
+  const habits=keys.map((k,i)=>mkHabit(k,'h'+(i+1),created));
+  habits.find(h=>h.key==='read').days=[0,1,2,3,4];
+  const probs={meditate:.88,language:.8,water:.85,walk:.7,read:.7,nosugar:.78},log={},skip={};
+  habits.forEach(h=>{
+    log[h.id]={};skip[h.id]={};
+    const g=goalOf(h);
+    for(let i=1;i<=44;i++){
+      const d=addDays(tt,-i),k=ds(d);
+      if(h.days&&h.days.indexOf(d.getDay())<0)continue;
+      const force=(h.key==='meditate'&&i<=4)||(h.key==='water'&&i<=9);
+      if(force||r()<probs[h.key])log[h.id][k]=g;
+      else if(h.type!=='check'&&r()<.4)log[h.id][k]=Math.max(1,Math.round(g*(.3+r()*.4)));
+    }
+  });
+  const walk=habits.find(h=>h.key==='walk');
+  delete log[walk.id][ds(addDays(tt,-3))];skip[walk.id][ds(addDays(tt,-3))]=true;
+  const tk=ds(tt);log.h3[tk]=3;log.h2[tk]=600;
+  return {v:2,habits:habits,log:log,skip:skip,notes:{},settings:freshSettings(l),demo:true};
+}
+const validShape=o=>o&&Array.isArray(o.habits)&&o.log&&typeof o.log==='object';
+function fix(o){
+  const st=Object.assign(freshSettings('en'),o.settings||{});
+  if(!LOC[st.lang])st.lang='en';
+  if(st.week!=='auto'&&!(Number(st.week)>=0&&Number(st.week)<=6))st.week='auto';
+  if(['auto','light','dark'].indexOf(st.theme)<0)st.theme='auto';
+  const habits=o.habits.filter(h=>h&&typeof h.id==='string').map(h=>({
+    id:h.id,key:(typeof h.key==='string'&&TPL.some(x=>x.k===h.key))?h.key:undefined,
+    name:typeof h.name==='string'?h.name.slice(0,60):undefined,
+    type:['check','count','time'].indexOf(h.type)>-1?h.type:'check',
+    target:Math.max(1,Math.min(999,Number(h.target)||1)),
+    unit:typeof h.unit==='string'?h.unit.slice(0,20):undefined,
+    ukey:['cup','page','prayer','times'].indexOf(h.ukey)>-1?h.ukey:undefined,
+    slot:SLOTS.indexOf(h.slot)>-1?h.slot:'morning',
+    color:COLORS.indexOf(h.color)>-1?h.color:'violet',
+    kind:h.kind==='quit'?'quit':'build',
+    created:/^\d{4}-\d{2}-\d{2}$/.test(h.created||'')?h.created:todayStr(),
+    days:(Array.isArray(h.days)&&h.days.length&&h.days.length<7)?h.days.filter(x=>x>=0&&x<=6):null,
+    remind:/^\d{2}:\d{2}$/.test(h.remind||'')?h.remind:'',
+    pauses:Array.isArray(h.pauses)?h.pauses.filter(p=>Array.isArray(p)&&typeof p[0]==='string'):[]
+  }));
+  return {v:2,habits:habits,log:o.log||{},skip:o.skip||{},notes:o.notes||{},settings:st,demo:!!o.demo};
+}
+function load(){
+  try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(validShape(o))return fix(o);}}catch(e){}
+  try{const r=localStorage.getItem(KEY2);if(r){const o=JSON.parse(r);if(validShape(o))return fix(o);}}catch(e){}
+  try{const r=localStorage.getItem(KEY1);if(r){const o=JSON.parse(r);if(validShape(o)){
+    if(o.demo)return seed('ar');
+    const s=fix({habits:o.habits,log:o.log,settings:freshSettings('ar')});return s;
+  }}}catch(e){}
+  return null;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ---------- habit logic ---------- */
+const hb=id=>S.habits.find(h=>h.id===id);
+const nameOf=h=>h.name||(h.key?t('tpl_'+h.key):'—');
+const unitOf=h=>h.unit||(h.ukey?t('u_'+h.ukey):t('u_times'));
+const val=(h,k)=>(S.log[h.id]&&S.log[h.id][k])||0;
+const ratio=(h,k)=>Math.min(1,val(h,k)/goalOf(h));
+const isDone=(h,k)=>val(h,k)>=goalOf(h);
+const isSkip=(h,k)=>!!(S.skip[h.id]&&S.skip[h.id][k]);
+const isPaused=(h,k)=>(h.pauses||[]).some(p=>k>=p[0]&&(!p[1]||k<p[1]));
+const sched=(h,k)=>!h.days||h.days.indexOf(fromDs(k).getDay())>-1;
+function st(h,k){
+  if(k<h.created||isPaused(h,k))return 'off';
+  if(isDone(h,k))return 'done';
+  if(isSkip(h,k))return 'skip';
+  return sched(h,k)?'miss':'off';
+}
+const visible=(h,k)=>k>=h.created&&!isPaused(h,k)&&(sched(h,k)||val(h,k)>0||isSkip(h,k));
+function dayFrac(k,f){
+  let sum=0,c=0;
+  S.habits.forEach(h=>{
+    if(f!=='all'&&h.id!==f)return;
+    const s=st(h,k);if(s==='off'||s==='skip')return;
+    sum+=ratio(h,k);c++;
+  });
+  return c?sum/c:null;
+}
+function streakNow(h){
+  let d=fromDs(todayStr()),c=0,lastF=null;
+  for(let i=0;i<1200;i++){
+    const k=ds(d);if(k<h.created)break;
+    const s=st(h,k);
+    if(s==='done')c++;
+    else if(s==='miss'){
+      if(i===0){/* today is not over yet */}
+      else if(S.settings.forgive&&(lastF===null||i-lastF>=7))lastF=i;
+      else break;
+    }
+    d=addDays(d,-1);
+  }
+  return c;
+}
+function bestStreak(h){
+  const today=todayStr();
+  let d=fromDs(h.created),c=0,best=0,lastF=null,idx=0;
+  while(ds(d)<=today&&idx<4000){
+    const k=ds(d),s=st(h,k);
+    if(s==='done'){c++;if(c>best)best=c;}
+    else if(s==='miss'&&k!==today){
+      if(S.settings.forgive&&(lastF===null||idx-lastF>=7))lastF=idx;
+      else{c=0;lastF=null;}
+    }
+    d=addDays(d,1);idx++;
+  }
+  return Math.max(best,streakNow(h));
+}
+const doneKeys=h=>Object.keys(S.log[h.id]||{}).filter(k=>isDone(h,k));
+const bestAll=()=>S.habits.reduce((a,h)=>Math.max(a,bestStreak(h)),0);
+const curAll=()=>S.habits.reduce((a,h)=>Math.max(a,streakNow(h)),0);
+const totalDone=()=>S.habits.reduce((a,h)=>a+doneKeys(h).length,0);
+function statsFor(f){
+  const hs=f==='all'?S.habits:S.habits.filter(h=>h.id===f);
+  let cur=0,best=0,total=0;
+  hs.forEach(h=>{cur=Math.max(cur,streakNow(h));best=Math.max(best,bestStreak(h));total+=doneKeys(h).length;});
+  let sum=0,cnt=0;const t0=fromDs(todayStr());
+  for(let i=0;i<30;i++){const fr=dayFrac(ds(addDays(t0,-i)),f);if(fr!=null){sum+=fr;cnt++;}}
+  return {cur:cur,best:best,total:total,rate:cnt?Math.round(sum/cnt*100):0};
+}
+const activeCount=()=>S.habits.filter(h=>!isPaused(h,todayStr())).length;
+const isPro=()=>!!S.settings.pro;
+function weekAvg(from,to){let s=0,c=0;const t0=fromDs(todayStr());for(let i=from;i<=to;i++){const f=dayFrac(ds(addDays(t0,-i)),'all');if(f!=null){s+=f;c++;}}return c?{avg:s/c*100,n:c}:null;}
+function review(){
+  const a=weekAvg(0,6),b=weekAvg(7,13);
+  if(!a)return null;
+  const t0=fromDs(todayStr());
+  const per=S.habits.map(h=>{let s=0,c=0;for(let i=0;i<7;i++){const k=ds(addDays(t0,-i)),x=st(h,k);if(x==='off'||x==='skip')continue;s+=ratio(h,k);c++;}return {h:h,r:c?s/c:null,c:c};}).filter(x=>x.r!==null&&x.c>=3);
+  per.sort((x,y)=>y.r-x.r);
+  return {a:a.avg,delta:b?Math.round(a.avg-b.avg):null,best:per.length>1?per[0]:null,weak:per.length>1&&per[per.length-1].r<per[0].r?per[per.length-1]:null};
+}
+
+/* ---------- state ---------- */
+S=load();
+if(!S){S=seed(detectLang());save();}
+lang=S.settings.lang;mkFmt();
+const now0=new Date();
+const ui={tab:'today',sel:todayStr(),week:0,f:'all',sm:{y:now0.getFullYear(),m:now0.getMonth()},sheet:null,detail:null,confirmDel:null,confirmWipe:false,form:null};
+let T=null,tm=null,toastT=null,undoData=null,lastFocus=null;
+
+function applyLang(){
+  lang=S.settings.lang;
+  const a=$('#app');a.lang=lang;a.dir=rtl()?'rtl':'ltr';
+  document.title=t('brand');
+  const th=S.settings.theme,root=document.documentElement;
+  if(th==='auto')root.removeAttribute('data-theme');else root.setAttribute('data-theme',th);
+  mkFmt();
+}
+function weekStartOf(d){return addDays(d,-dayIdx(d));}
+function weekOffsetFor(k){return Math.round((weekStartOf(fromDs(k))-weekStartOf(fromDs(todayStr())))/(7*864e5));}
+
+function setVal(h,k,v,quiet){
+  const prev=val(h,k),was=isDone(h,k),bBefore=quiet?0:bestAll();
+  S.log[h.id]=S.log[h.id]||{};
+  if(v<=0)delete S.log[h.id][k];else S.log[h.id][k]=v;
+  if(isDone(h,k)&&S.skip[h.id])delete S.skip[h.id][k];
+  save();
+  const nowDone=isDone(h,k);
+  refresh();
+  if(quiet)return;
+  const bAfter=bestAll();
+  const crossed=STREAK_MARKS.filter(m=>bBefore<m&&bAfter>=m).pop();
+  if(crossed)toast(t('t_badge',tp('p_day',crossed)));
+  else if(!was&&nowDone)toast(t('t_nice',nameOf(h)),{hid:h.id,k:k,prev:prev});
+}
+function toast(m,undo){
+  const el=$('#toast');$('#toast-t').textContent=m;
+  const ub=$('#toast-u');undoData=undo||null;
+  if(undo){ub.hidden=false;ub.textContent=t('t_undo');}else ub.hidden=true;
+  el.classList.add('show');clearTimeout(toastT);
+  toastT=setTimeout(()=>{el.classList.remove('show');undoData=null;},undo?4500:2400);
+}
+
+/* ---------- views ---------- */
+function topHTML(){
+  const sub=ui.tab==='today'?(fmtLong(fromDs(todayStr()))+((S.settings.hijri&&hijri(new Date()))?' · '+hijri(new Date()):'')):t('nav_'+(ui.tab==='stats'?'stats':ui.tab==='ach'?'ach':'set'));
+  const add=ui.tab==='set'?'':'<button class="addbtn" data-act="add">'+ic('plus',18)+'<span>'+esc(t('add_habit'))+'</span></button>';
+  return '<div><h1 class="brand">'+esc(t('brand'))+'<span class="bdot" aria-hidden="true"></span></h1><p class="dateline">'+esc(sub)+'</p></div>'+add;
+}
+function tabsHTML(){
+  const defs=[['today','today','nav_today'],['stats','stats','nav_stats'],['ach','flame','nav_ach'],['set','gear','nav_set']];
+  defs.forEach(d=>{const b=$('#tab-'+d[0]);b.innerHTML=ic(d[1],22)+'<span>'+esc(t(d[2]))+'</span>';b.setAttribute('aria-current',ui.tab===d[0]?'page':'false');});
+}
+function schedLabel(h){
+  if(!h.days)return t('sched_every');
+  return h.days.slice().sort((a,b)=>((a-wsDay()+7)%7)-((b-wsDay()+7)%7)).map(w=>wdName(w,'short')).join(', ');
+}
+function habitSub(h,v,extra){
+  const g=goalOf(h),parts=[esc(schedLabel(h))];
+  if(h.type==='count')parts.push(esc(t('sub_cnt',nf(v),nf(g),unitOf(h))));
+  else if(h.type==='time')parts.push(esc(t('sub_time',nf(Math.floor(v/60)),nf(h.target))));
+  else if(h.kind==='quit')parts.push(esc(t('sub_quit')));
+  let s=parts.join(' · ');
+  return s+(extra||'');
+}
+function habitCard(h){
+  const k=ui.sel,v=val(h,k),p=ratio(h,k),done=isDone(h,k),skip=isSkip(h,k)&&!done,s=streakNow(h);
+  const due=k===todayStr()&&h.remind&&!done&&!skip&&nowHM()>=h.remind;
+  const icon=h.kind==='quit'?'ban':(h.type==='time'?'clock':(h.type==='count'?'hash':'checksq'));
+  const nm=esc(nameOf(h));
+  let act;
+  if(h.type==='check')act='<button class="act'+(done?' on':'')+'" data-act="toggle" data-hid="'+h.id+'" aria-pressed="'+done+'" aria-label="'+nm+'">'+ic('check',22)+'</button>';
+  else if(h.type==='count')act='<button class="act'+(done?' on':'')+'" data-act="inc" data-hid="'+h.id+'" aria-label="+1 '+nm+'">'+ic(done?'check':'plus',22)+'</button>';
+  else act='<button class="act'+(done?' on':'')+'" data-act="timer" data-hid="'+h.id+'" aria-label="'+esc(t('d_timer'))+': '+nm+'">'+(done?ic('check',22):ic('play',20))+'</button>';
+  let extra='';
+  if(skip)extra+=' <span class="tag">'+ic('skip',11)+esc(t('skipped_chip'))+'</span>';
+  if(due)extra+=' <span class="tag due">'+ic('bell',11)+esc(t('due_chip',h.remind))+'</span>';
+  return '<article class="habit'+(skip?' skipped':'')+'" style="--c:var(--'+h.color+')"><div class="h-ico">'+ic(icon,22)+'</div>'
+    +'<button class="h-body" data-act="detail" data-hid="'+h.id+'"><span class="h-row"><span class="h-title">'+nm+'</span>'
+    +(s>0?'<span class="streak">'+ic('flame',15,true)+nf(s)+'</span>':'')+'</span>'
+    +'<span class="h-sub">'+habitSub(h,v,extra)+'</span><span class="track"><span class="pf" style="width:'+Math.round(p*100)+'%"></span></span></button>'
+    +act+'</article>';
+}
+function pausedCard(h){
+  return '<article class="habit paused" style="--c:var(--'+h.color+')"><div class="h-ico">'+ic('pause',22)+'</div><div class="h-body"><span class="h-title">'+esc(nameOf(h))+'</span><span class="h-sub">'+esc(t('d_paused'))+'</span></div><button class="chip" data-act="pause" data-hid="'+h.id+'">'+esc(t('d_resume'))+'</button></article>';
+}
+function quickChips(){
+  return '<div class="qs">'+TPL.slice(0,6).map((x,i)=>'<button class="chip" data-act="tpladd" data-i="'+i+'">'+esc(t('tpl_'+x.k))+'</button>').join('')+'</div>';
+}
+function todayView(){
+  const t0=todayStr(),sel=ui.sel,ws=addDays(weekStartOf(fromDs(t0)),ui.week*7);
+  let h='<div class="weekbar"><button class="nav" data-act="wprev" aria-label="'+esc(t('nav_prev'))+'">'+icPrev(20)+'</button><span class="wlabel">'+esc(monthYear(addDays(ws,3)))+'</span><button class="nav" data-act="wnext" aria-label="'+esc(t('nav_next'))+'"'+(ui.week>=0?' disabled':'')+'>'+icNext(20)+'</button></div><div class="strip">';
+  for(let i=0;i<7;i++){
+    const d=addDays(ws,i),k=ds(d),f=dayFrac(k,'all'),fut=k>t0;
+    h+='<button class="day'+(k===sel?' sel':'')+(fut?' future':'')+(f!=null&&f>=1?' full':'')+'" data-act="day" data-d="'+k+'"'+(fut?' disabled':'')+' aria-pressed="'+(k===sel)+'" aria-label="'+esc(fmtLong(d))+'"><span class="dl">'+esc(d.toLocaleDateString(loc(),{weekday:'short'}))+'</span><span class="dc">'+ring(f||0,38,3.5)+'<b>'+nf(d.getDate())+'</b></span><i class="tdot'+(k===t0?' on':'')+'"></i></button>';
+  }
+  h+='</div>';
+  const hs=S.habits.filter(x=>visible(x,sel));
+  const rel=hs.filter(x=>st(x,sel)!=='skip'&&st(x,sel)!=='off');
+  const done=rel.filter(x=>isDone(x,sel)).length,fr=dayFrac(sel,'all')||0,cur=curAll();
+  let msg;
+  if(!hs.length)msg=t('no_habits_day');
+  else if(rel.length&&done===rel.length)msg=t('all_done');
+  else msg=t('progress',nf(done),nf(rel.length),nf(rel.length-done));
+  h+='<section class="summary"><div class="sring">'+ring(fr,64,6)+'<span>'+esc(pct(Math.round(fr*100)))+'</span></div><div class="sbody"><h2>'+esc(sel===t0?t('today'):fmtLong(fromDs(sel)))+'</h2><p>'+esc(msg)+'</p>'
+    +(cur>0&&sel===t0?'<p>'+esc(t('best_now',tp('p_day',cur)))+'</p>':'')
+    +(sel!==t0?'<button class="chip" data-act="wtoday">'+esc(t('back_today'))+'</button>':'')+'</div></section>';
+  if(S.demo)h+='<div class="demo"><span>'+esc(t('demo_note'))+'</span><button data-act="reset">'+esc(t('demo_reset'))+'</button></div>';
+  if(!S.habits.length){
+    h+='<div class="empty"><p>'+esc(t('empty_none'))+'</p>'+quickChips()+'<button class="addbtn" data-act="add">'+ic('plus',18)+'<span>'+esc(t('add_first'))+'</span></button></div>';
+  }else if(!hs.length&&!S.habits.some(x=>x.created<=sel)){
+    h+='<div class="empty"><p>'+esc(t('empty_before'))+'</p></div>';
+  }else{
+    SLOTS.forEach(sl=>{
+      const list=hs.filter(x=>x.slot===sl);if(!list.length)return;
+      const dn=list.filter(x=>isDone(x,sel)).length;
+      h+='<section class="slot"><h2><span>'+esc(t('slot_'+sl))+'</span><span>'+nf(dn)+'/'+nf(list.length)+'</span></h2><div class="list">'+list.map(habitCard).join('')+'</div></section>';
+    });
+    if(sel===t0){
+      const ps=S.habits.filter(x=>isPaused(x,t0));
+      if(ps.length)h+='<section class="slot"><h2><span>'+esc(t('d_paused'))+'</span><span>'+nf(ps.length)+'</span></h2><div class="list">'+ps.map(pausedCard).join('')+'</div></section>';
+    }
+  }
+  return h;
+}
+function statsView(){
+  const f=ui.f,col=f==='all'?'var(--accent)':'var(--'+(hb(f)||{color:'violet'}).color+')';
+  const s=statsFor(f),t0=todayStr(),tD=fromDs(t0);
+  let h='<div class="chips" role="group">'+'<button class="chip" data-act="sf" data-f="all" aria-pressed="'+(f==='all')+'">'+esc(t('s_all'))+'</button>'
+    +S.habits.map(x=>'<button class="chip" data-act="sf" data-f="'+x.id+'" aria-pressed="'+(f===x.id)+'">'+esc(nameOf(x))+'</button>').join('')+'</div>';
+  if(!S.habits.length)return h+'<div class="empty"><p>'+esc(t('s_empty'))+'</p></div>';
+  h+='<div class="tiles"><div class="tile"><small>'+esc(t('s_cur'))+'</small><b>'+esc(tp('p_day',s.cur))+'</b></div>'
+    +'<div class="tile"><small>'+esc(t('s_best'))+'</small><b>'+esc(tp('p_day',s.best))+'</b></div>'
+    +'<div class="tile"><small>'+esc(t('s_rate'))+'</small><b>'+esc(pct(s.rate))+'</b></div>'
+    +'<div class="tile"><small>'+esc(t('s_total'))+'</small><b>'+nf(s.total)+'</b></div></div>';
+  if(f==='all')h+='<p class="note">'+esc(t('s_all_note'))+'</p>';
+  /* weekly review */
+  const rv=review();
+  h+='<section class="card review"><h3>'+esc(t('r_title'))+'</h3>';
+  if(!rv)h+='<p class="m">'+esc(t('r_none'))+'</p>';
+  else{
+    h+='<p class="big">'+esc(t('r_this',pct(Math.round(rv.a))))+'</p>';
+    if(rv.delta!==null)h+='<p class="m">'+esc(rv.delta>0?t('r_up',nf(rv.delta)):(rv.delta<0?t('r_down',nf(-rv.delta)):t('r_same')))+'</p>';
+    if(rv.best)h+='<p>'+esc(t('r_best',nameOf(rv.best.h)))+'</p>';
+    if(rv.weak)h+='<p>'+esc(t('r_weak',nameOf(rv.weak.h)))+'</p>';
+  }
+  h+='</section>';
+  /* month calendar */
+  const y=ui.sm.y,m=ui.sm.m,first=new Date(y,m,1),dim=new Date(y,m+1,0).getDate(),atNow=(y===tD.getFullYear()&&m===tD.getMonth());
+  h+='<section class="card" style="--c:'+col+'"><div class="cal-head"><button class="nav" data-act="mprev" aria-label="'+esc(t('nav_prev'))+'">'+icPrev(20)+'</button><h3>'+esc(monthYear(first))+'</h3><button class="nav" data-act="mnext" aria-label="'+esc(t('nav_next'))+'"'+(atNow?' disabled':'')+'>'+icNext(20)+'</button></div><div class="cal">';
+  for(let i=0;i<7;i++)h+='<span class="wd">'+esc(wdName((wsDay()+i)%7,'short'))+'</span>';
+  for(let i=0;i<dayIdx(first);i++)h+='<span></span>';
+  for(let d=1;d<=dim;d++){
+    const k=y+'-'+pad(m+1)+'-'+pad(d),fr=dayFrac(k,f),fut=k>t0;
+    let p=fr==null?0:Math.round(fr*100);if(fr>0)p=Math.max(p,25);
+    h+='<button class="cell'+(fr==null?' off':'')+(p>=55?' hi':'')+(fut?' future':'')+(k===t0?' today':'')+'" style="--p:'+p+'" data-act="calday" data-d="'+k+'"'+(fut?' disabled':'')+'>'+nf(d)+'</button>';
+  }
+  h+='</div></section>';
+  /* last 14 days */
+  let bars='',sum=0,cnt=0;
+  for(let i=13;i>=0;i--){
+    const d=addDays(tD,-i),k=ds(d),fr=dayFrac(k,f),p=fr==null?0:Math.round(fr*100);
+    if(fr!=null){sum+=fr;cnt++;}
+    bars+='<div class="bar'+(i===0?' today':'')+'"><div class="bt"><div class="bf" style="height:'+p+'%"></div></div><small>'+nf(d.getDate())+'</small></div>';
+  }
+  h+='<section class="card" style="--c:'+col+'"><h3>'+esc(t('s_14'))+'</h3><p class="hint">'+esc(t('s_14_hint',pct(cnt?Math.round(sum/cnt*100):0)))+'</p><div class="bars" role="img" aria-label="'+esc(t('s_14_aria'))+'">'+bars+'</div></section>';
+  return h;
+}
+function achView(){
+  const best=bestAll(),total=totalDone();
+  const nextS=STREAK_MARKS.find(x=>x>best),nextG=GOAL_MARKS.find(x=>x>total);
+  let h='<div class="section-title">'+esc(t('a_streak',best?tp('p_day',best):t('a_none')))+'</div><div class="badges">'
+    +STREAK_MARKS.map(x=>'<div class="badge'+(best>=x?' on':'')+'"><div class="hex">'+ic('flame',34,true)+'</div><span>'+esc(tp('p_day',x))+'</span></div>').join('')+'</div>';
+  h+='<p class="note" style="margin-top:12px">'+esc(nextS?t('a_next',tp('p_day',nextS-best)):t('a_all'))+'</p>';
+  h+='<div class="section-title" style="margin-top:22px">'+esc(t('a_goals',tp('p_done',total)))+'</div><div class="badges">'
+    +GOAL_MARKS.map(x=>'<div class="badge goal'+(total>=x?' on':'')+'"><div class="hex">'+ic('flag',32)+'</div><span>'+esc(tp('p_done',x))+'</span></div>').join('')+'</div>';
+  h+='<p class="note" style="margin-top:12px">'+esc(nextG?t('a_goals_next',tp('p_done',nextG-total)):t('a_goals_all'))+'</p>';
+  return h;
+}
+function settingsView(){
+  const pro=isPro(),sc=S.settings;
+  const langOpts=LANGS.map(l=>'<option value="'+l[0]+'"'+(sc.lang===l[0]?' selected':'')+'>'+l[1]+'</option>').join('');
+  const wkOpts='<option value="auto"'+(sc.week==='auto'?' selected':'')+'>'+esc(t('st_auto'))+'</option>'+[6,0,1].map(w=>'<option value="'+w+'"'+(String(sc.week)===String(w)?' selected':'')+'>'+esc(wdName(w,'long'))+'</option>').join('');
+  const thOpts=[['auto','st_th_auto'],['light','st_th_light'],['dark','st_th_dark']].map(o=>'<option value="'+o[0]+'"'+(sc.theme===o[0]?' selected':'')+'>'+esc(t(o[1]))+'</option>').join('');
+  let h='';
+  h+='<section class="group"><h2>'+esc(t('st_plan'))+'</h2><div class="row"><div class="lbl"><div class="planline"><b>'+esc(pro?t('st_plan_pro'):t('st_plan_free'))+'</b><span class="pill">'+esc(pro?t('st_unl'):t('st_used',nf(activeCount()),nf(FREE_LIMIT)))+'</span></div></div><button class="btn2" data-act="plans">'+esc(t('st_see'))+'</button></div></section>';
+  h+='<section class="group"><div class="row"><div class="lbl"><b>'+esc(t('st_lang'))+'</b></div><select data-set="lang" aria-label="'+esc(t('st_lang'))+'">'+langOpts+'</select></div>'
+    +'<div class="row"><div class="lbl"><b>'+esc(t('st_week'))+'</b></div><select data-set="week" aria-label="'+esc(t('st_week'))+'">'+wkOpts+'</select></div>'
+    +'<div class="row"><div class="lbl"><b>'+esc(t('st_theme'))+'</b></div><select data-set="theme" aria-label="'+esc(t('st_theme'))+'">'+thOpts+'</select></div>'
+    +'<div class="row"><div class="lbl"><b>'+esc(t('st_hijri'))+'</b></div><input type="checkbox" class="sw" role="switch" data-set="hijri"'+(sc.hijri?' checked':'')+' aria-label="'+esc(t('st_hijri'))+'"></div>'
+    +'<div class="row"><div class="lbl"><b>'+esc(t('st_forgive'))+'</b><small>'+esc(t('st_forgive_hint'))+'</small></div><input type="checkbox" class="sw" role="switch" data-set="forgive"'+(sc.forgive?' checked':'')+' aria-label="'+esc(t('st_forgive'))+'"></div></section>';
+  h+='<section class="group"><h2>'+esc(t('st_data'))+'</h2><div class="row col"><div class="btns">'
+    +'<button class="btn2" data-act="xjson">'+esc(t('st_json'))+'</button><button class="btn2" data-act="xcsv">'+esc(t('st_csv'))+'</button><button class="btn2" data-act="xcopy">'+esc(t('st_copy'))+'</button></div>'
+    +'<details class="rest" id="rest"><summary>'+esc(t('st_restore'))+'</summary><div class="btns" style="margin-top:10px"><button class="btn2" data-act="xfile">'+esc(t('st_file'))+'</button></div><textarea id="rtext" placeholder="'+esc(t('st_restore_ph'))+'" aria-label="'+esc(t('st_restore_ph'))+'"></textarea><div class="btns" style="margin-top:8px"><button class="btn2" data-act="xrestore">'+esc(t('st_restore_btn'))+'</button></div></details></div>';
+  if(ui.confirmWipe)h+='<div class="row col"><div class="confirm" style="margin:0"><span>'+esc(t('st_wipe_ask'))+'</span><button class="danger-fill" data-act="wipeok">'+esc(t('st_wipe_ok'))+'</button><button class="keep" data-act="wipeno">'+esc(t('cancel'))+'</button></div></div>';
+  else h+='<div class="row"><button class="btn2 danger" data-act="wipe">'+esc(t('st_wipe'))+'</button></div>';
+  h+='</section><p class="priv">'+esc(t('st_priv'))+'</p><p class="tagline" dir="ltr">MOVE · FOCUS · GROW</p>';
+  return h;
+}
+function render(){
+  $('#top').innerHTML=topHTML();
+  const v=ui.tab==='today'?todayView():(ui.tab==='stats'?statsView():(ui.tab==='ach'?achView():settingsView()));
+  const keep=ui.tab==='set'&&$('#rest')&&$('#rest').open,rt=ui.tab==='set'&&$('#rtext')?$('#rtext').value:'';
+  $('#view').innerHTML=v;
+  if(keep&&$('#rest')){$('#rest').open=true;$('#rtext').value=rt;}
+  tabsHTML();
+}
+function refresh(){
+  render();
+  if(ui.sheet==='detail')$('#sh').innerHTML=detailHTML(ui.detail);
+}
+
+/* ---------- sheets ---------- */
+function openSheet(html,kind){
+  lastFocus=document.activeElement;
+  ui.sheet=kind;$('#sh').innerHTML=html;$('#ov').hidden=false;
+  try{$('#sh').focus({preventScroll:true});}catch(e){}
+}
+function closeSheet(){
+  if(ui.sheet==='timer')saveTimer();
+  clearInterval(tm);tm=null;T=null;
+  ui.sheet=null;ui.detail=null;ui.confirmDel=null;ui.form=null;
+  $('#ov').hidden=true;$('#sh').innerHTML='';
+  render();
+  try{if(lastFocus&&document.contains(lastFocus))lastFocus.focus({preventScroll:true});}catch(e){}
+}
+const head=(title,sub)=>'<div class="grab"></div><div class="s-head"><div><h2>'+esc(title)+'</h2>'+(sub?'<p>'+esc(sub)+'</p>':'')+'</div><button class="x" data-act="close" type="button" aria-label="'+esc(t('cancel'))+'">'+ic('x',18)+'</button></div>';
+
+function detailHTML(id){
+  const h=hb(id);if(!h)return '';
+  const k=ui.sel,t0=todayStr(),v=val(h,k),g=goalOf(h),done=isDone(h,k),skip=isSkip(h,k)&&!done,paused=isPaused(h,t0);
+  const q=h.kind==='quit';
+  let ctl;
+  if(h.type==='check')ctl='<button class="primary" data-act="toggle" data-hid="'+h.id+'">'+esc(done?t('d_undo'):(q?t('d_quit_ok'):t('d_done')))+'</button>';
+  else if(h.type==='count')ctl='<div class="stepper"><button class="rb" data-act="dec" data-hid="'+h.id+'" aria-label="−1">'+ic('minus',18)+'</button><div class="sv"><b>'+nf(v)+'</b><small>/ '+nf(g)+' '+esc(unitOf(h))+'</small></div><button class="rb" data-act="inc" data-hid="'+h.id+'" aria-label="+1">'+ic('plus',18)+'</button></div>';
+  else ctl='<div class="stepper"><button class="rb" data-act="tm5" data-hid="'+h.id+'">'+esc(t('tm_minus'))+'</button><div class="sv"><b>'+nf(Math.floor(v/60))+'</b><small>/ '+nf(h.target)+' '+esc(t('min'))+'</small></div><button class="rb" data-act="tp5" data-hid="'+h.id+'">'+esc(t('tm_plus'))+'</button></div><button class="primary" data-act="timer" data-hid="'+h.id+'">'+esc(t('d_timer'))+'</button>';
+  let dots='';
+  for(let i=6;i>=0;i--){
+    const d=addDays(fromDs(t0),-i),kk=ds(d),s=st(h,kk);
+    dots+='<div class="md"><i class="'+(s==='done'?'d':(s==='skip'?'s':''))+'">'+(s==='done'?ic('check',14):(s==='skip'?ic('skip',10):''))+'</i><span>'+esc(d.toLocaleDateString(loc(),{weekday:'short'}))+'</span></div>';
+  }
+  const del=ui.confirmDel===h.id
+    ?'<div class="confirm"><span>'+esc(t('d_confirm',nameOf(h)))+'</span><button class="danger-fill" data-act="delok" data-hid="'+h.id+'">'+esc(t('d_del_ok'))+'</button><button class="keep" data-act="delno">'+esc(t('cancel'))+'</button></div>'
+    :'';
+  const typeText=q?t('d_type_quit'):(h.type==='check'?t('d_type_check'):t('d_type_goal',nf(h.target),h.type==='time'?t('min'):unitOf(h)));
+  const note=(S.notes[h.id]||{})[k]||'';
+  return head(nameOf(h),typeText+' · '+(k===t0?t('today'):fmtLong(fromDs(k))))
+    +'<div style="--c:var(--'+h.color+')"><div class="stats2"><div><small>'+esc(t('d_cur'))+'</small><b>'+esc(tp('p_day',streakNow(h)))+'</b></div><div><small>'+esc(t('d_best'))+'</small><b>'+esc(tp('p_day',bestStreak(h)))+'</b></div></div><div class="mini7">'+dots+'</div></div>'
+    +ctl
+    +'<div class="arow"><button data-act="skip" data-hid="'+h.id+'">'+ic('skip',16)+'<span>'+esc(skip?t('d_unskip'):t('d_skip'))+'</span></button></div><p class="hintline">'+esc(t('d_skip_hint'))+'</p>'
+    +'<div class="field"><label for="note">'+esc(t('d_note'))+'</label><textarea id="note" data-hid="'+h.id+'" data-k="'+k+'" maxlength="500" placeholder="'+esc(t('d_note_ph'))+'">'+esc(note)+'</textarea></div>'
+    +'<div class="arow"><button data-act="edit" data-hid="'+h.id+'">'+ic('pencil',16)+'<span>'+esc(t('d_edit'))+'</span></button><button data-act="pause" data-hid="'+h.id+'">'+ic('pause',16)+'<span>'+esc(paused?t('d_resume'):t('d_pause'))+'</span></button><button class="danger" data-act="del" data-hid="'+h.id+'">'+ic('trash',16)+'<span>'+esc(t('d_delete'))+'</span></button></div>'+del;
+}
+function openDetail(id){ui.detail=id;ui.confirmDel=null;openSheet(detailHTML(id),'detail');}
+
+/* timer */
+function openTimer(id){
+  const h=hb(id);if(!h)return;
+  const rem=Math.max(0,goalOf(h)-val(h,ui.sel));
+  const total=Math.min(7200,Math.max(60,Math.ceil((rem>0?rem:goalOf(h))/60)*60));
+  T={id:id,total:total,left:total,running:false,endAt:0,saved:0,finished:false};
+  const r=100,c=(2*Math.PI*r).toFixed(2);
+  openSheet(head(nameOf(h),t('tm_goal',nf(h.target)))
+    +'<div style="--c:var(--'+h.color+')"><div class="tring"><svg viewBox="0 0 240 240" aria-hidden="true"><circle cx="120" cy="120" r="'+r+'" fill="none" stroke="color-mix(in srgb,var(--c) 18%,var(--surface2))" stroke-width="14"/><circle id="t-arc" cx="120" cy="120" r="'+r+'" fill="none" stroke="var(--c)" stroke-width="14" stroke-linecap="round" stroke-dasharray="'+c+'" stroke-dashoffset="0" transform="rotate(-90 120 120)"/></svg><div class="tnum"><span id="t-time" dir="ltr"></span><span id="t-note"></span></div></div>'
+    +'<div class="trow"><button class="rb" data-act="tminus">'+esc(t('tm_minus'))+'</button><button class="rb" data-act="tplus">'+esc(t('tm_plus'))+'</button></div></div>'
+    +'<button class="primary" id="t-main" data-act="tmain"></button><button class="ghost" data-act="close">'+esc(t('tm_save'))+'</button>','timer');
+  T.circ=2*Math.PI*r;
+  paintTimer();
+}
+function paintTimer(){
+  if(!T)return;
+  const tEl=$('#t-time');if(!tEl)return;
+  const secs=Math.ceil(T.left),mm=Math.floor(secs/60),ss=secs%60;
+  tEl.textContent=two(mm)+':'+two(ss);
+  $('#t-arc').setAttribute('stroke-dashoffset',(T.circ*(1-T.left/T.total)).toFixed(2));
+  $('#t-note').textContent=T.finished?t('tm_over'):(T.running?t('tm_run'):t('tm_len',nf(Math.round(T.total/60))));
+  $('#t-main').textContent=T.finished?t('tm_finish'):(T.running?t('tm_pause'):(T.total-T.left>0?t('tm_resume'):t('tm_start')));
+}
+function tick(){
+  if(!T||!T.running)return;
+  T.left=Math.max(0,(T.endAt-Date.now())/1000);
+  if(T.left<=0){
+    T.running=false;T.finished=true;clearInterval(tm);tm=null;saveTimer();
+    try{if(navigator.vibrate)navigator.vibrate([200,100,200]);}catch(e){}
+  }
+  paintTimer();
+}
+function saveTimer(){
+  if(!T)return;
+  const el=Math.floor(T.total-T.left),delta=el-T.saved,h=hb(T.id);
+  if(h&&delta>=1){T.saved=el;setVal(h,ui.sel,val(h,ui.sel)+delta);}
+}
+function tAdjust(d){
+  if(!T||T.finished)return;
+  const nt=T.total+d,nl=T.left+d;
+  if(nt<60||nl<60)return;
+  T.total=nt;T.left=nl;if(T.running)T.endAt+=d*1000;
+  paintTimer();
+}
+function tMain(){
+  if(!T)return;
+  if(T.finished){closeSheet();return;}
+  if(T.running){T.left=Math.max(0,(T.endAt-Date.now())/1000);T.running=false;clearInterval(tm);tm=null;}
+  else{T.endAt=Date.now()+T.left*1000;T.running=true;clearInterval(tm);tm=setInterval(tick,250);}
+  paintTimer();
+}
+
+/* add / edit habit */
+function openForm(id){
+  const h=id?hb(id):null;
+  ui.form=id||null;
+  const dayOrder=[0,1,2,3,4,5,6].map(i=>(wsDay()+i)%7);
+  const sel=h?(h.days||[0,1,2,3,4,5,6]):[0,1,2,3,4,5,6];
+  const sw=COLORS.map(c=>'<label style="--c:var(--'+c+')"><input type="radio" name="color" value="'+c+'"'+((h?h.color:'violet')===c?' checked':'')+' aria-label="'+esc(t('c_'+c))+'"><span></span></label>').join('');
+  const dchips=dayOrder.map(w=>'<label><input type="checkbox" name="day" value="'+w+'"'+(sel.indexOf(w)>-1?' checked':'')+'><span>'+esc(wdName(w,'short'))+'</span></label>').join('');
+  const typ=h?h.type:'check';
+  let body=head(h?t('f_edit'):t('f_new'),h?'':t('f_sub'))+'<form id="addf" novalidate data-edit="'+(h?h.id:'')+'" data-type="'+typ+'">';
+  if(!h)body+='<fieldset><legend>'+esc(t('f_quick'))+'</legend><div class="qs" style="justify-content:flex-start">'+TPL.map((x,i)=>'<button type="button" class="chip" data-act="tplfill" data-i="'+i+'">'+esc(t('tpl_'+x.k))+'</button>').join('')+'</div></fieldset>';
+  body+='<div class="field"><label for="f-name">'+esc(t('f_name'))+'</label><input type="text" id="f-name" maxlength="40" autocomplete="off" placeholder="'+esc(t('f_name_ph'))+'" value="'+esc(h?nameOf(h):'')+'"></div>';
+  if(!h)body+='<fieldset><legend>'+esc(t('f_track'))+'</legend><div class="seg"><label><input type="radio" name="type" value="check" id="t-check" checked><span>'+esc(t('f_yn'))+'</span></label><label><input type="radio" name="type" value="count" id="t-count"><span>'+esc(t('f_cnt'))+'</span></label><label><input type="radio" name="type" value="time" id="t-time2"><span>'+esc(t('f_time'))+'</span></label></div></fieldset>';
+  body+='<div class="two"><div class="field" id="g-target" hidden><label for="f-target" id="lbl-target">'+esc(t('f_target'))+'</label><input type="number" id="f-target" min="1" max="999" inputmode="numeric" value="'+(h?h.target:10)+'"></div><div class="field" id="g-unit" hidden><label for="f-unit">'+esc(t('f_unit'))+'</label><input type="text" id="f-unit" maxlength="12" placeholder="'+esc(t('f_unit_ph'))+'" value="'+esc(h&&h.type==='count'?unitOf(h):'')+'"></div></div>'
+    +'<div class="field"><label for="f-slot">'+esc(t('f_slot'))+'</label><select id="f-slot">'+SLOTS.map(s=>'<option value="'+s+'"'+((h?h.slot:'morning')===s?' selected':'')+'>'+esc(t('slot_'+s))+'</option>').join('')+'</select></div>'
+    +'<fieldset><legend>'+esc(t('f_days'))+'</legend><div class="dchips">'+dchips+'</div></fieldset>'
+    +'<div class="field"><label for="f-remind">'+esc(t('f_remind'))+'</label><input type="time" id="f-remind" value="'+(h?h.remind:'')+'"><p class="fhint">'+esc(t('f_remind_hint'))+'</p></div>'
+    +'<fieldset><legend>'+esc(t('f_color'))+'</legend><div class="swatches">'+sw+'</div></fieldset>';
+  if(!h)body+='<label class="chk"><input type="checkbox" id="f-quit"><span>'+esc(t('f_quit'))+'</span></label>';
+  body+='<button class="primary" type="submit">'+esc(h?t('f_save'):t('f_add'))+'</button></form>';
+  openSheet(body,'form');
+  updateAddForm();
+}
+function updateAddForm(){
+  const f=$('#addf');if(!f)return;
+  const quitEl=$('#f-quit'),quit=quitEl?quitEl.checked:false;
+  if(quit)$('#t-check').checked=true;
+  const typeEl=f.querySelector('input[name=type]:checked');
+  const type=typeEl?typeEl.value:f.dataset.type;
+  f.querySelectorAll('input[name=type]').forEach(r=>{r.disabled=quit&&r.value!=='check';});
+  $('#g-target').hidden=(type==='check');
+  $('#g-unit').hidden=(type!=='count');
+  $('#lbl-target').textContent=type==='time'?t('f_target_min'):t('f_target');
+}
+function submitForm(){
+  const f=$('#addf'),name=$('#f-name').value.trim();
+  if(!name){$('#f-name').focus();return;}
+  const editId=f.dataset.edit,h=editId?hb(editId):null;
+  const quit=$('#f-quit')?$('#f-quit').checked:(h?h.kind==='quit':false);
+  const typeEl=f.querySelector('input[name=type]:checked');
+  const type=h?h.type:(quit?'check':(typeEl?typeEl.value:'check'));
+  let target=parseInt($('#f-target').value,10);
+  if(!(target>0))target=type==='time'?10:5;
+  target=Math.min(target,999);
+  let days=Array.prototype.map.call(f.querySelectorAll('input[name=day]:checked'),x=>Number(x.value));
+  if(days.length===0||days.length===7)days=null;
+  const unitTxt=$('#f-unit').value.trim();
+  const data={slot:$('#f-slot').value,color:f.querySelector('input[name=color]:checked').value,days:days,remind:$('#f-remind').value||''};
+  if(h){
+    Object.assign(h,data);
+    if(type!=='check')h.target=target;
+    if(h.key&&name===t('tpl_'+h.key)){}else{h.name=name;delete h.key;}
+    if(type==='count'){
+      if(h.ukey&&unitTxt===t('u_'+h.ukey)){}else{h.unit=unitTxt||t('u_times');delete h.ukey;}
+    }
+    save();closeSheet();toast(t('t_saved'));return;
+  }
+  S.habits.push(Object.assign({id:'h'+Date.now().toString(36),name:name,type:type,target:type==='check'?1:target,unit:type==='count'?(unitTxt||t('u_times')):undefined,kind:quit?'quit':'build',created:todayStr(),pauses:[]},data));
+  S.demo=false;
+  save();ui.tab='today';ui.sel=todayStr();ui.week=0;
+  closeSheet();toast(t('t_added',name));
+}
+function tryAdd(){
+  if(!isPro()&&activeCount()>=FREE_LIMIT){openPlans('limit');return false;}
+  return true;
+}
+function addFromTpl(i){
+  if(!tryAdd())return;
+  const x=TPL[i];
+  const h=mkHabit(x.k,'h'+Date.now().toString(36),todayStr());
+  S.habits.push(h);S.demo=false;save();render();toast(t('t_added',nameOf(h)));
+}
+function fillFromTpl(i){
+  const x=TPL[i],f=$('#addf');if(!f)return;
+  $('#f-name').value=t('tpl_'+x.k);
+  const q=$('#f-quit');if(q)q.checked=!!x.quit;
+  const r=f.querySelector('input[name=type][value='+x.type+']');if(r)r.checked=true;
+  if(x.target)$('#f-target').value=x.target;
+  $('#f-unit').value=x.u?t('u_'+x.u):'';
+  $('#f-slot').value=x.slot;
+  const c=f.querySelector('input[name=color][value='+x.color+']');if(c)c.checked=true;
+  updateAddForm();
+}
+
+/* plans */
+function openPlans(reason){
+  const pro=isPro();
+  const li=(txt,native)=>'<li>'+ic('check',16)+'<span>'+esc(txt)+(native?'<span class="tag">'+esc(t('pr_soon'))+'</span>':'')+'</span></li>';
+  let h=head(t('pr_title'),t('pr_sub'));
+  if(reason==='limit')h+='<div class="limitmsg">'+esc(t('pr_limit',nf(FREE_LIMIT)))+'</div>';
+  h+='<div class="plan'+(pro?'':' cur')+'"><div class="plan-h"><h3>'+esc(t('pr_free'))+'</h3><span class="price">'+esc(money(0))+'</span></div><ul>'+li(t('pr_f1',nf(FREE_LIMIT)))+li(t('pr_f2'))+li(t('pr_f3'))+'</ul>'+(pro?'':'<p class="p2">'+esc(t('pr_current'))+'</p>')+'</div>';
+  h+='<div class="plan best'+(pro?' cur':'')+'"><div class="plan-h"><h3>'+esc(t('pr_life'))+' <span class="pill">'+esc(t('pr_best'))+'</span></h3><span class="price">'+esc(money(P().life))+'<small>'+esc(t('pr_once'))+'</small></span></div><ul>'+li(t('pr_l1'))+li(t('pr_l2'),true)+li(t('pr_l3'),true)+'</ul>'
+    +(pro?'<p class="p2">'+esc(t('pr_unlocked'))+'</p><button class="primary soft" data-act="relock">'+esc(t('pr_back'))+'</button>':'<button class="primary" data-act="unlock">'+esc(t('pr_unlock'))+'</button>')+'</div>';
+  h+='<div class="plan"><div class="plan-h"><h3>'+esc(t('pr_sync'))+'</h3><span class="price" style="font-size:15px">'+esc(t('pr_mo',money(P().mo)))+'<small>'+esc(t('pr_yr',money(P().yr)))+'</small></span></div><ul>'+li(t('pr_sy1'),true)+li(t('pr_sy2'))+'</ul><p class="p2">'+esc(t('pr_soon_btn'))+'</p></div>';
+  h+='<p class="demo-note">'+esc(t('pr_demo'))+'</p>';
+  openSheet(h,'plans');
+}
+
+/* backup */
+const backupText=()=>JSON.stringify({app:'tazivo',version:2,exportedAt:new Date().toISOString(),data:S});
+async function exportFile(name,text){
+  let d=null;
+  try{d=window.claude&&window.claude.use?await window.claude.use('downloads'):null;}catch(e){d=null;}
+  if(d){
+    try{await d.save({filename:name,data:text});return;}
+    catch(e){if(e&&e.code==='declined')return;}
+  }
+  try{
+    const b=new Blob([text],{type:'text/plain'}),a=document.createElement('a');
+    a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},600);
+    toast(t('x_export'));
+  }catch(e){showText(text);toast(t('x_copyfail'));}
+}
+function csvCell(c){let s=String(c);if(/^[=+\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
+function csvText(){
+  const rows=[['habit','type','date','value','goal','skipped','note']];
+  S.habits.forEach(h=>{
+    const set={};[S.log[h.id],S.skip[h.id],S.notes[h.id]].forEach(o=>Object.keys(o||{}).forEach(k=>{set[k]=1;}));
+    Object.keys(set).sort().forEach(k=>rows.push([nameOf(h),h.type==='time'?'seconds':h.type,k,val(h,k),goalOf(h),isSkip(h,k)?1:0,(S.notes[h.id]||{})[k]||'']));
+  });
+  return rows.map(r=>r.map(csvCell).join(',')).join('\n');
+}
+function importText(txt){
+  let o;try{o=JSON.parse(txt);}catch(e){toast(t('x_bad'));return;}
+  const d=o&&o.data?o.data:o;
+  if(!validShape(d)){toast(t('x_bad'));return;}
+  S=fix(d);save();applyLang();render();toast(t('x_imported'));
+}
+function showText(txt){
+  const r=$('#rest'),ta=$('#rtext');
+  if(r&&ta){r.open=true;ta.value=txt;ta.focus();ta.select();}
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  if(e.target===$('#ov')){closeSheet();return;}
+  const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
+  const a=el.dataset.act,h=el.dataset.hid?hb(el.dataset.hid):null;
+  switch(a){
+    case 'tab':ui.tab=el.dataset.tab;ui.confirmWipe=false;render();window.scrollTo(0,0);break;
+    case 'day':ui.sel=el.dataset.d;render();break;
+    case 'calday':ui.sel=el.dataset.d;ui.week=weekOffsetFor(el.dataset.d);ui.tab='today';render();window.scrollTo(0,0);break;
+    case 'wprev':ui.week--;render();break;
+    case 'wnext':if(ui.week<0){ui.week++;render();}break;
+    case 'wtoday':ui.week=0;ui.sel=todayStr();render();break;
+    case 'mprev':ui.sm.m--;if(ui.sm.m<0){ui.sm.m=11;ui.sm.y--;}render();break;
+    case 'mnext':{const n0=new Date();if(ui.sm.y<n0.getFullYear()||ui.sm.m<n0.getMonth()){ui.sm.m++;if(ui.sm.m>11){ui.sm.m=0;ui.sm.y++;}render();}break;}
+    case 'sf':ui.f=el.dataset.f;render();break;
+    case 'add':if(tryAdd())openForm(null);break;
+    case 'edit':if(h)openForm(h.id);break;
+    case 'tpladd':addFromTpl(Number(el.dataset.i));break;
+    case 'tplfill':fillFromTpl(Number(el.dataset.i));break;
+    case 'close':closeSheet();break;
+    case 'detail':if(h)openDetail(h.id);break;
+    case 'toggle':if(h)setVal(h,ui.sel,isDone(h,ui.sel)?0:1);break;
+    case 'inc':if(h)setVal(h,ui.sel,val(h,ui.sel)+1);break;
+    case 'dec':if(h)setVal(h,ui.sel,Math.max(0,val(h,ui.sel)-1));break;
+    case 'tm5':if(h)setVal(h,ui.sel,Math.max(0,val(h,ui.sel)-300));break;
+    case 'tp5':if(h)setVal(h,ui.sel,val(h,ui.sel)+300);break;
+    case 'timer':if(h){if(ui.sheet)closeSheet();openTimer(h.id);}break;
+    case 'tminus':tAdjust(-300);break;
+    case 'tplus':tAdjust(300);break;
+    case 'tmain':tMain();break;
+    case 'skip':if(h){S.skip[h.id]=S.skip[h.id]||{};if(isSkip(h,ui.sel))delete S.skip[h.id][ui.sel];else S.skip[h.id][ui.sel]=true;save();refresh();}break;
+    case 'pause':if(h){const open=(h.pauses||[]).find(p=>!p[1]);h.pauses=h.pauses||[];if(open)open[1]=todayStr();else h.pauses.push([todayStr(),null]);save();refresh();}break;
+    case 'del':ui.confirmDel=el.dataset.hid;refresh();break;
+    case 'delno':ui.confirmDel=null;refresh();break;
+    case 'delok':
+      S.habits=S.habits.filter(x=>x.id!==el.dataset.hid);delete S.log[el.dataset.hid];delete S.skip[el.dataset.hid];delete S.notes[el.dataset.hid];
+      if(ui.f===el.dataset.hid)ui.f='all';
+      save();closeSheet();toast(t('t_deleted'));break;
+    case 'reset':S.habits=[];S.log={};S.skip={};S.notes={};S.demo=false;ui.f='all';save();render();break;
+    case 'undo':if(undoData){const u=undoData,hh=hb(u.hid);undoData=null;$('#toast').classList.remove('show');if(hh)setVal(hh,u.k,u.prev,true);}break;
+    case 'plans':openPlans();break;
+    case 'unlock':S.settings.pro=true;save();openPlans();render();break;
+    case 'relock':S.settings.pro=false;save();openPlans();render();break;
+    case 'xjson':exportFile('tazivo-backup.json',backupText());break;
+    case 'xcsv':exportFile('tazivo-habits.csv',csvText());break;
+    case 'xcopy':{
+      const txt=backupText();
+      (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast(t('x_copied')),()=>{showText(txt);toast(t('x_copyfail'));});
+      break;}
+    case 'xfile':$('#imp').click();break;
+    case 'xrestore':{const ta=$('#rtext');if(ta&&ta.value.trim())importText(ta.value);break;}
+    case 'wipe':ui.confirmWipe=true;render();break;
+    case 'wipeno':ui.confirmWipe=false;render();break;
+    case 'wipeok':S={v:2,habits:[],log:{},skip:{},notes:{},settings:S.settings,demo:false};ui.confirmWipe=false;ui.f='all';save();render();toast(t('x_wiped'));break;
+  }
+});
+document.addEventListener('change',e=>{
+  const el=e.target,key=el.dataset&&el.dataset.set;
+  if(key){
+    if(key==='lang'){S.settings.lang=el.value;S.settings.hijri=el.value==='ar'?true:S.settings.hijri;applyLang();}
+    else if(key==='week')S.settings.week=el.value==='auto'?'auto':Number(el.value);
+    else if(key==='theme'){S.settings.theme=el.value;applyLang();}
+    else if(key==='hijri')S.settings.hijri=el.checked;
+    else if(key==='forgive')S.settings.forgive=el.checked;
+    save();render();return;
+  }
+  if(el.id==='imp'&&el.files&&el.files[0]){
+    const rd=new FileReader();rd.onload=()=>importText(String(rd.result||''));rd.readAsText(el.files[0]);el.value='';return;
+  }
+  if(el.closest&&el.closest('#addf'))updateAddForm();
+});
+document.addEventListener('input',e=>{
+  const el=e.target;
+  if(el.id==='note'){
+    const h=hb(el.dataset.hid);if(!h)return;
+    S.notes[h.id]=S.notes[h.id]||{};
+    const v=el.value.slice(0,500);
+    if(v.trim())S.notes[h.id][el.dataset.k]=v;else delete S.notes[h.id][el.dataset.k];
+    save();
+  }
+});
+document.addEventListener('submit',e=>{if(e.target.id==='addf'){e.preventDefault();submitForm();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ui.sheet)closeSheet();});
+
+applyLang();
+render();
+
+})();
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){navigator.serviceWorker.register('sw.js').catch(function(){});}
+</script>
+</body></html>
